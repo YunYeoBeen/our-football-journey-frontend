@@ -66,7 +66,7 @@ export default function TimelineView() {
                     </Space>
                   </div>
                   
-                  <Space direction="vertical" size={8} style={{ width: '100%' }}>
+                  <Space orientation="vertical" size={8} style={{ width: '100%' }}>
                     <div style={{ fontSize: '14px', color: '#666' }}>
                       <EnvironmentOutlined /> {memory.location}
                     </div>

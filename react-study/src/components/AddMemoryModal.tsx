@@ -5,6 +5,7 @@ import type { UploadFile } from 'antd';
 import dayjs from 'dayjs';
 import { useMemoryStore } from '../store/userMemoryStore';
 import type { Memory } from '../types';
+import { CategoryMap, WeatherMap } from '../types';
 import { boardApi } from '../services/boardApi';
 
 const { TextArea } = Input;
@@ -48,16 +49,16 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
         });
       }
 
-      // 서버에 전송할 데이터
+      // 서버에 전송할 데이터 (한글 -> 영문 ENUM 변환)
       const boardData = {
         date: formData.date,
         title: formData.title,
         place: formData.location,
-        category: formData.category,
+        category: CategoryMap.toServer[formData.category] || 'DATE',
         mood: formData.mood,
         content: formData.content,
         imageUrl: images.length > 0 ? images : [],
-        weather: formData.weather
+        weather: WeatherMap.toServer[formData.weather] || 'SUN'
       };
 
       // 서버에 게시물 생성 요청
@@ -72,7 +73,7 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
         category: response.category as Memory['category'],
         mood: response.mood,
         content: response.content,
-        images: response.imageUrl.length > 0 ? response.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
+        images: response.imageUrl?.length > 0 ? response.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
         weather: response.weather as Memory['weather']
       };
 
@@ -115,7 +116,7 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
         style: { background: '#ff9a76', borderColor: '#ff9a76', height: 40 } 
       }}
     >
-      <Space direction="vertical" style={{ width: '100%' }} size={16}>
+      <Space orientation="vertical" style={{ width: '100%' }} size={16}>
         <div>
           <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
             📅 날짜

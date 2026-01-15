@@ -1,3 +1,5 @@
+import { CategoryMap, WeatherMap } from '../types';
+
 const API_BASE_URL = 'http://localhost:8080/api/v1/board';
 
 export interface BoardCreateRequest {
@@ -33,6 +35,13 @@ export interface BoardListResponse {
   number: number;
 }
 
+// 서버 응답을 클라이언트 형식으로 변환
+const convertToClientFormat = (response: BoardResponse): BoardResponse => ({
+  ...response,
+  category: CategoryMap.toClient[response.category] || response.category,
+  weather: WeatherMap.toClient[response.weather] || response.weather
+});
+
 export const boardApi = {
   // 게시물 생성
   async create(data: BoardCreateRequest): Promise<BoardResponse> {
@@ -50,7 +59,8 @@ export const boardApi = {
       throw new Error('게시물 생성에 실패했습니다.');
     }
 
-    return response.json();
+    const result = await response.json();
+    return convertToClientFormat(result);
   },
 
   // 전체 게시물 조회
@@ -68,6 +78,10 @@ export const boardApi = {
       throw new Error('게시물 조회에 실패했습니다.');
     }
 
-    return response.json();
+    const data: BoardListResponse = await response.json();
+    return {
+      ...data,
+      content: data.content.map(convertToClientFormat)
+    };
   }
 };

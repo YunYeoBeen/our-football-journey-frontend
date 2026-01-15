@@ -29,7 +29,7 @@ export default function MemoryPage() {
           location: board.place,
           category: board.category as Memory['category'],
           content: board.content,
-          images: board.imageUrl.length > 0 ? board.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
+          images: board.imageUrl?.length > 0 ? board.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
           mood: board.mood,
           weather: board.weather as Memory['weather']
         }));
@@ -49,7 +49,8 @@ export default function MemoryPage() {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
-        <Spin size="large" tip="추억을 불러오는 중..." />
+        <Spin size="large" />
+        <p style={{ marginTop: 16, color: '#999' }}>추억을 불러오는 중...</p>
       </div>
     );
   }

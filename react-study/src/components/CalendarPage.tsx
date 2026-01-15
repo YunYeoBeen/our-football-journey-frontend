@@ -102,7 +102,7 @@ export default function CalendarPage() {
           style: { background: '#ff9a76', borderColor: '#ff9a76' } 
         }}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="large">
+        <Space orientation="vertical" style={{ width: '100%' }} size="large">
           <Input
             type="date"
             value={newScheduleDate}
