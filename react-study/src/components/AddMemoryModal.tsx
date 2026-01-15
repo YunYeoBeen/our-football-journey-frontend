@@ -5,6 +5,7 @@ import type { UploadFile } from 'antd';
 import dayjs from 'dayjs';
 import { useMemoryStore } from '../store/userMemoryStore';
 import type { Memory } from '../types';
+import { boardApi } from '../services/boardApi';
 
 const { TextArea } = Input;
 
@@ -23,45 +24,65 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
     content: '',
     date: dayjs().format('YYYY-MM-DD'),
     mood: 5,
-    weather: '맑음' as Memory['weather'],
-    duration: ''
+    weather: '맑음' as Memory['weather']
   });
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.title || !formData.location || !formData.content) {
       message.warning('제목, 장소, 내용은 필수입니다!');
       return;
     }
 
-    const images: string[] = [];
-    if (fileList.length > 0 && fileList[0].originFileObj) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        images.push(reader.result as string);
-        
-        const newMemory: Memory = {
-          id: Date.now(),
-          ...formData,
-          images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400']
-        };
+    try {
+      const images: string[] = [];
 
-        addMemory(newMemory);
-        message.success('추억이 저장되었습니다! 💕');
-        onClose();
-        resetForm();
+      // 이미지가 있으면 base64로 변환
+      if (fileList.length > 0 && fileList[0].originFileObj) {
+        const reader = new FileReader();
+        await new Promise((resolve) => {
+          reader.onloadend = () => {
+            images.push(reader.result as string);
+            resolve(null);
+          };
+          reader.readAsDataURL(fileList[0].originFileObj!);
+        });
+      }
+
+      // 서버에 전송할 데이터
+      const boardData = {
+        date: formData.date,
+        title: formData.title,
+        place: formData.location,
+        category: formData.category,
+        mood: formData.mood,
+        content: formData.content,
+        imageUrl: images.length > 0 ? images : [],
+        weather: formData.weather
       };
-      reader.readAsDataURL(fileList[0].originFileObj);
-    } else {
+
+      // 서버에 게시물 생성 요청
+      const response = await boardApi.create(boardData);
+
+      // 로컬 스토어에도 추가 (UI 업데이트용)
       const newMemory: Memory = {
-        id: Date.now(),
-        ...formData,
-        images: ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400']
+        id: response.id,
+        date: response.date,
+        title: response.title,
+        location: response.place,
+        category: response.category as Memory['category'],
+        mood: response.mood,
+        content: response.content,
+        images: response.imageUrl.length > 0 ? response.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
+        weather: response.weather as Memory['weather']
       };
 
       addMemory(newMemory);
       message.success('추억이 저장되었습니다! 💕');
       onClose();
       resetForm();
+    } catch (error) {
+      console.error('게시물 저장 실패:', error);
+      message.error('추억 저장에 실패했습니다. 다시 시도해주세요.');
     }
   };
 
@@ -73,8 +94,7 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
       content: '',
       date: dayjs().format('YYYY-MM-DD'),
       mood: 5,
-      weather: '맑음',
-      duration: ''
+      weather: '맑음'
     });
     setFileList([]);
   };
@@ -182,12 +202,12 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
           </Upload>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               ☀️ 날씨
             </label>
-            <Select 
+            <Select
               style={{ width: '100%' }}
               size="large"
               value={formData.weather}
@@ -203,21 +223,9 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
 
           <div>
             <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
-              ⏱️ 함께한 시간
-            </label>
-            <Input 
-              placeholder="예) 3시간"
-              size="large"
-              value={formData.duration}
-              onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-            />
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: 8, fontWeight: 500 }}>
               💕 기분
             </label>
-            <Rate 
+            <Rate
               character={<HeartOutlined />}
               style={{ fontSize: 22, color: '#ff9a76' }}
               value={formData.mood}

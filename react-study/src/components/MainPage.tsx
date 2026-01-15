@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Tabs, Avatar, Typography } from 'antd';
-import { HomeOutlined, UserOutlined, CameraOutlined, CalendarOutlined } from '@ant-design/icons';
+import { Layout, Tabs, Avatar, Typography, Button } from 'antd';
+import { HomeOutlined, UserOutlined, CameraOutlined, CalendarOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/userAuthStore';
 import { useNavigate } from 'react-router-dom';
 import MemoryPage from './MemoryPage';
@@ -51,15 +51,26 @@ const MainPage: React.FC = () => {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Avatar
+            style={{ background: '#ffd4a3' }}
+            icon={<UserOutlined />}
+          />
           <span style={{ color: 'white', fontWeight: 500 }}>
             {user?.name ?? '사용자'}
           </span>
-
-          <Avatar
-            style={{ background: '#ffd4a3', cursor: 'pointer' }}
-            icon={<UserOutlined />}
+          <Button
+            type="primary"
+            icon={<LogoutOutlined />}
             onClick={handleLogout}
-          />
+            style={{
+              background: 'rgba(255, 255, 255, 0.2)',
+              borderColor: 'white',
+              color: 'white',
+              fontWeight: 500
+            }}
+          >
+            로그아웃
+          </Button>
         </div>
       </Header>
 
@@ -82,7 +93,7 @@ const MainPage: React.FC = () => {
               key: 'calendar',
               label: (
                 <span>
-                  <CalendarOutlined /> 가족 달력
+                  <CalendarOutlined /> 달력
                 </span>
               ),
               children: <CalendarPage />

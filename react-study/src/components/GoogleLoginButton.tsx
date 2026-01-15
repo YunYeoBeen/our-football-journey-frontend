@@ -6,7 +6,10 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
 
 export default function GoogleLoginButton() {
   const handleGoogleLogin = () => {
-    window.location.href = `${BACKEND_URL}/oauth2/authorization/google`;
+    const loginUrl = `${BACKEND_URL}/api/v1/oauth2/authorization/google`;
+    console.log('Attempting to login with URL:', loginUrl);
+    console.log('Backend URL:', BACKEND_URL);
+    window.location.href = loginUrl;
   };
 
   return (

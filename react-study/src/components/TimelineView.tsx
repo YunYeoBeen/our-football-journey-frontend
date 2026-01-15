@@ -73,20 +73,15 @@ export default function TimelineView() {
                     <p style={{ color: '#666', lineHeight: 1.6, margin: '8px 0' }}>
                       {memory.content}
                     </p>
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       justifyContent: 'space-between',
                       marginTop: 8
                     }}>
-                      <Space>
-                        <span>{weatherEmoji[memory.weather]}</span>
-                        <span style={{ fontSize: '13px', color: '#999' }}>
-                          ⏱️ {memory.duration}
-                        </span>
-                      </Space>
-                      <Rate 
-                        disabled 
-                        value={memory.mood} 
+                      <span>{weatherEmoji[memory.weather]}</span>
+                      <Rate
+                        disabled
+                        value={memory.mood}
                         character={<HeartOutlined />}
                         style={{ fontSize: 14, color: '#ff9a76' }}
                       />

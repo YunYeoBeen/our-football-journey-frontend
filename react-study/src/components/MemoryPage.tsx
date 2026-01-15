@@ -1,13 +1,58 @@
-import React, { useState } from 'react';
-import { Button, Tabs } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Button, Tabs, message, Spin } from 'antd';
 import { PlusOutlined, CameraOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import GalleryView from '../components/GalleryView';
 import TimelineView from '../components/TimelineView';
 import AddMemoryModal from '../components/AddMemoryModal';
+import { boardApi } from '../services/boardApi';
+import { useMemoryStore } from '../store/userMemoryStore';
+import type { Memory } from '../types';
 
 export default function MemoryPage() {
   const [viewMode, setViewMode] = useState<'gallery' | 'timeline'>('gallery');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const setMemories = useMemoryStore((state) => state.setMemories);
+
+  // 컴포넌트 마운트 시 서버에서 데이터 가져오기
+  useEffect(() => {
+    const fetchMemories = async () => {
+      try {
+        setLoading(true);
+        const response = await boardApi.getAllList(0, 100);
+
+        // 서버 응답을 Memory 타입으로 변환
+        const memories: Memory[] = response.content.map(board => ({
+          id: board.id,
+          date: board.date,
+          title: board.title,
+          location: board.place,
+          category: board.category as Memory['category'],
+          content: board.content,
+          images: board.imageUrl.length > 0 ? board.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
+          mood: board.mood,
+          weather: board.weather as Memory['weather']
+        }));
+
+        setMemories(memories);
+      } catch (error) {
+        console.error('게시물 조회 실패:', error);
+        message.error('추억을 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMemories();
+  }, [setMemories]);
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <Spin size="large" tip="추억을 불러오는 중..." />
+      </div>
+    );
+  }
 
   return (
     <div>
