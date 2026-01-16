@@ -22,14 +22,14 @@ export default function MemoryPage() {
         const response = await boardApi.getAllList(0, 100);
 
         // 서버 응답을 Memory 타입으로 변환
-        const memories: Memory[] = response.content.map(board => ({
-          id: board.id,
+        const memories: Memory[] = response.content.map((board, index) => ({
+          id: board.id ?? index,
           date: board.date,
           title: board.title,
           location: board.place,
           category: board.category as Memory['category'],
           content: board.content,
-          images: board.imageUrl?.length > 0 ? board.imageUrl : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
+          images: board.imageUrl ? [board.imageUrl] : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
           mood: board.mood,
           weather: board.weather as Memory['weather']
         }));

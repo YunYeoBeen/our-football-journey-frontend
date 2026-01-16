@@ -2,6 +2,11 @@ import { CategoryMap, WeatherMap } from '../types';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1/board';
 
+export interface BoardImageRequest {
+  url: string;
+  sort: number;
+}
+
 export interface BoardCreateRequest {
   date: string;
   title: string;
@@ -9,30 +14,34 @@ export interface BoardCreateRequest {
   category: string;
   mood: number;
   content: string;
-  imageUrl: string[];
+  imageUrl: BoardImageRequest[];
   weather: string;
 }
 
 export interface BoardResponse {
-  id: number;
+  id?: number;
   date: string;
   title: string;
   place: string;
   category: string;
   mood: number;
   content: string;
-  imageUrl: string[];
+  imageUrl: string;  // 썸네일 URL (단일 문자열)
   weather: string;
   createdAt?: string;
   updatedAt?: string;
 }
 
+export interface BoardListItem {
+  id: number;
+  title: string;
+  imageUrl: string;
+  date: string;
+}
+
 export interface BoardListResponse {
-  content: BoardResponse[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
+  content: BoardListItem[];
+  hasNext: boolean;
 }
 
 // 서버 응답을 클라이언트 형식으로 변환
@@ -78,10 +87,6 @@ export const boardApi = {
       throw new Error('게시물 조회에 실패했습니다.');
     }
 
-    const data: BoardListResponse = await response.json();
-    return {
-      ...data,
-      content: data.content.map(convertToClientFormat)
-    };
+    return response.json();
   }
 };
