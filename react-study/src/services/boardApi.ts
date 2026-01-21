@@ -2,11 +2,6 @@ import { CategoryMap, WeatherMap } from '../types';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1/board';
 
-export interface BoardImageRequest {
-  url: string;
-  sort: number;
-}
-
 export interface BoardCreateRequest {
   date: string;
   title: string;
@@ -14,7 +9,7 @@ export interface BoardCreateRequest {
   category: string;
   mood: number;
   content: string;
-  imageUrl: BoardImageRequest[];
+  imageKeys: string[];  // S3 이미지 키 배열
   weather: string;
 }
 
@@ -35,13 +30,48 @@ export interface BoardResponse {
 export interface BoardListItem {
   id: number;
   title: string;
-  imageUrl: string;
+  thumbnail: string | null;  // S3 key (presigned URL 발급 필요)
   date: string;
 }
 
 export interface BoardListResponse {
   content: BoardListItem[];
   hasNext: boolean;
+}
+
+// 게시물 상세 조회 응답
+export interface BoardDetailResponse {
+  id: number;
+  date: string;
+  title: string;
+  place: string;
+  category: string;
+  mood: number;
+  content: string;
+  images: string[];  // 상세 조회 시 이미지 key 배열
+  weather: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// 게시물 수정 요청
+export interface BoardUpdateRequest {
+  title?: string;
+  date?: string;
+  content?: string;
+  mood?: number;
+  weather?: string;
+  place?: string;
+  category?: string;
+  keepImageKeys?: string[];
+  addImageFileNames?: string[];
+  deleteImageKeys?: string[];
+}
+
+// 게시물 수정/삭제 응답
+export interface BoardMutationResponse {
+  id: number;
+  success: boolean;
 }
 
 // 서버 응답을 클라이언트 형식으로 변환
@@ -85,6 +115,74 @@ export const boardApi = {
 
     if (!response.ok) {
       throw new Error('게시물 조회에 실패했습니다.');
+    }
+
+    return response.json();
+  },
+
+  // 게시물 상세 조회
+  async getDetail(boardId: number): Promise<BoardDetailResponse> {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch(`${API_BASE_URL}/detail/${boardId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('게시물 상세 조회에 실패했습니다.');
+    }
+
+    const result = await response.json();
+    return {
+      ...result,
+      category: CategoryMap.toClient[result.category] || result.category,
+      weather: WeatherMap.toClient[result.weather] || result.weather
+    };
+  },
+
+  // 게시물 수정
+  async update(boardId: number, data: BoardUpdateRequest): Promise<BoardMutationResponse> {
+    const token = localStorage.getItem('accessToken');
+
+    // category와 weather를 서버 형식으로 변환
+    const serverData = {
+      ...data,
+      category: data.category ? (CategoryMap.toServer[data.category] || data.category) : undefined,
+      weather: data.weather ? (WeatherMap.toServer[data.weather] || data.weather) : undefined
+    };
+
+    const response = await fetch(`${API_BASE_URL}/${boardId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      body: JSON.stringify(serverData)
+    });
+
+    if (!response.ok) {
+      throw new Error('게시물 수정에 실패했습니다.');
+    }
+
+    return response.json();
+  },
+
+  // 게시물 삭제
+  async delete(boardId: number): Promise<BoardMutationResponse> {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch(`${API_BASE_URL}/${boardId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('게시물 삭제에 실패했습니다.');
     }
 
     return response.json();

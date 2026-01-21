@@ -3,7 +3,12 @@ import { useAuthStore } from '../store/userAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { boardApi } from '../services/boardApi';
 import type { BoardListItem } from '../services/boardApi';
+import { s3Api } from '../services/s3Api';
 import AddMemoryModal from './AddMemoryModal';
+import MemoryDetailModal from './MemoryDetailModal';
+
+// 썸네일 URL 캐시 (key -> presigned URL)
+const thumbnailCache = new Map<string, string>();
 
 // 공통 스타일
 const styles = {
@@ -90,18 +95,30 @@ const AutoAwesomeIcon = () => (
 
 type TabType = 'feed' | 'timeline' | 'calendar';
 
+// 아이템에 presigned URL을 추가한 타입
+interface BoardItemWithUrl extends BoardListItem {
+  thumbnailUrl?: string;
+}
+
 const MainPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('feed');
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
+  const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [items, setItems] = useState<BoardListItem[]>([]);
+  const [items, setItems] = useState<BoardItemWithUrl[]>([]);
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(true);
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+  const handleItemClick = (boardId: number) => {
+    setSelectedBoardId(boardId);
+    setIsDetailModalVisible(true);
+  };
 
   useEffect(() => {
     const token = localStorage.getItem('accessToken');
@@ -120,11 +137,47 @@ const MainPage: React.FC = () => {
       }
 
       const response = await boardApi.getAllList(pageNum, 12);
+      console.log('API response:', response);
+
+      // thumbnail이 있는 아이템들의 presigned URL 발급
+      const itemsWithKeys = response.content.filter((item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null);
+      console.log('Items with keys:', itemsWithKeys);
+      let urlMap: Record<string, string> = {};
+
+      if (itemsWithKeys.length > 0) {
+        // 캐시에 없는 key만 요청
+        const keysToFetch = itemsWithKeys
+          .filter(item => !thumbnailCache.has(item.thumbnail))
+          .map(item => item.thumbnail);
+        console.log('Keys to fetch:', keysToFetch);
+
+        if (keysToFetch.length > 0) {
+          const urls = await s3Api.getPresignedViewUrls(keysToFetch);
+          console.log('Presigned URLs:', urls);
+          keysToFetch.forEach((key, idx) => {
+            thumbnailCache.set(key, urls[idx]);
+            urlMap[key] = urls[idx];
+          });
+        }
+
+        // 캐시에서 URL 가져오기
+        itemsWithKeys.forEach(item => {
+          if (thumbnailCache.has(item.thumbnail)) {
+            urlMap[item.thumbnail] = thumbnailCache.get(item.thumbnail)!;
+          }
+        });
+      }
+
+      // thumbnailUrl 추가
+      const itemsWithUrls: BoardItemWithUrl[] = response.content.map(item => ({
+        ...item,
+        thumbnailUrl: item.thumbnail ? urlMap[item.thumbnail] : undefined
+      }));
 
       if (isLoadMore) {
-        setItems(prev => [...prev, ...response.content]);
+        setItems(prev => [...prev, ...itemsWithUrls]);
       } else {
-        setItems(response.content);
+        setItems(itemsWithUrls);
       }
 
       setHasNext(response.hasNext);
@@ -346,23 +399,24 @@ const MainPage: React.FC = () => {
               {items.map((item, index) => (
                 <div
                   key={`${item.id}-${index}`}
+                  onClick={() => handleItemClick(item.id)}
                   style={{
                     aspectRatio: '1',
                     borderRadius: 8,
                     overflow: 'hidden',
                     backgroundColor: styles.colors.gray100,
                     boxShadow: '0 4px 20px -4px rgba(255, 180, 168, 0.15)',
+                    cursor: 'pointer',
                   }}
                 >
                   <div
                     style={{
                       width: '100%',
                       height: '100%',
-                      backgroundImage: `url("${item.imageUrl}")`,
+                      backgroundImage: item.thumbnailUrl ? `url("${item.thumbnailUrl}")` : 'none',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
                       transition: 'transform 0.5s ease',
-                      cursor: 'pointer',
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
                     onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
@@ -483,7 +537,7 @@ const MainPage: React.FC = () => {
           </button>
 
           <button
-            onClick={() => setActiveTab('timeline')}
+            onClick={() => navigate('/timeline')}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -573,6 +627,27 @@ const MainPage: React.FC = () => {
       <AddMemoryModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
+        onCreated={() => {
+          thumbnailCache.clear();
+          fetchItems(0);
+        }}
+      />
+
+      {/* Memory Detail Modal */}
+      <MemoryDetailModal
+        visible={isDetailModalVisible}
+        boardId={selectedBoardId}
+        onClose={() => setIsDetailModalVisible(false)}
+        onDeleted={() => {
+          // Refresh list after delete
+          thumbnailCache.clear();
+          fetchItems(0);
+        }}
+        onUpdated={() => {
+          // Refresh list after update
+          thumbnailCache.clear();
+          fetchItems(0);
+        }}
       />
 
       {/* CSS Animation */}

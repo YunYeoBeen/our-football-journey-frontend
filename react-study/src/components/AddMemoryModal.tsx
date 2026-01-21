@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { message } from 'antd';
 import dayjs from 'dayjs';
-import { useMemoryStore } from '../store/userMemoryStore';
 import type { Memory } from '../types';
 import { CategoryMap, WeatherMap } from '../types';
 import { boardApi } from '../services/boardApi';
@@ -30,10 +29,10 @@ const styles = {
 interface AddMemoryModalProps {
   visible: boolean;
   onClose: () => void;
+  onCreated?: () => void;
 }
 
-export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps) {
-  const addMemory = useMemoryStore((state) => state.addMemory);
+export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemoryModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -72,21 +71,21 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
 
     setIsSubmitting(true);
     try {
-      const imageUrls: { url: string; sort: number }[] = [];
+      const imageKeys: string[] = [];
 
       // S3 presigned URL로 이미지 업로드
       if (selectedFile) {
-        // 1. Presigned URL 발급
-        const presignedUrls = await s3Api.getPresignedUrls([selectedFile.name]);
+        // 1. Presigned Upload URL 발급
+        const presignedUrls = await s3Api.getPresignedUploadUrls([selectedFile.name]);
 
         if (presignedUrls.length > 0) {
-          const { uploadUrl, finalUrl } = presignedUrls[0];
+          const { uploadUrl, key } = presignedUrls[0];
 
           // 2. S3에 파일 업로드
           await s3Api.uploadToS3(uploadUrl, selectedFile);
 
-          // 3. 업로드된 이미지의 final URL 저장
-          imageUrls.push({ url: finalUrl, sort: 1 });
+          // 3. 업로드된 이미지의 S3 key 저장
+          imageKeys.push(key);
         }
       }
 
@@ -97,26 +96,13 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
         category: CategoryMap.toServer[formData.category] || 'DATE',
         mood: formData.mood,
         content: formData.content,
-        imageUrl: imageUrls,
+        imageKeys: imageKeys,
         weather: WeatherMap.toServer[formData.weather] || 'SUNNY'
       };
 
-      const response = await boardApi.create(boardData);
-
-      const newMemory: Memory = {
-        id: response.id ?? Date.now(),
-        date: response.date,
-        title: response.title,
-        location: response.place,
-        category: response.category as Memory['category'],
-        mood: response.mood,
-        content: response.content,
-        images: response.imageUrl ? [response.imageUrl] : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
-        weather: response.weather as Memory['weather']
-      };
-
-      addMemory(newMemory);
+      await boardApi.create(boardData);
       message.success('Memory saved!');
+      onCreated?.();
       handleClose();
     } catch (error) {
       console.error('Save failed:', error);
@@ -514,7 +500,7 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
           </button>
           <button
             onClick={handleSubmit}
-            disabled={isSubmitting}
+            disabled={isSubmitting || !formData.content.trim()}
             style={{
               padding: '8px 24px',
               fontSize: 14,
@@ -523,12 +509,12 @@ export default function AddMemoryModal({ visible, onClose }: AddMemoryModalProps
               backgroundColor: styles.colors.primary,
               border: 'none',
               borderRadius: 6,
-              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              cursor: (isSubmitting || !formData.content.trim()) ? 'not-allowed' : 'pointer',
               transition: 'opacity 0.2s, transform 0.1s',
-              opacity: isSubmitting ? 0.7 : 1,
+              opacity: (isSubmitting || !formData.content.trim()) ? 0.5 : 1,
               fontFamily: styles.fontFamily,
             }}
-            onMouseDown={(e) => !isSubmitting && (e.currentTarget.style.transform = 'scale(0.95)')}
+            onMouseDown={(e) => !isSubmitting && formData.content.trim() && (e.currentTarget.style.transform = 'scale(0.95)')}
             onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
             onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
           >

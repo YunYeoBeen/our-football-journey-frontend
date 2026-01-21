@@ -1,9 +1,9 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/userAuthStore';
 import LoginPage from './components/LoginPage';
 import OAuthCallback from './components/OAuthCallback'
-import MainPage from './components/MainPage';
+import HomePage from './components/HomePage';
 import { jwtDecode } from 'jwt-decode';
 
 function App() {
@@ -31,7 +31,9 @@ function App() {
       <Routes>
         <Route path="/" element={user ? <Navigate to="/home" /> : <LoginPage />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
-        <Route path="/home" element={user ? <MainPage /> : <Navigate to="/" />} />
+        <Route path="/home" element={user ? <HomePage /> : <Navigate to="/" />} />
+        <Route path="/main" element={<Navigate to="/home" />} />
+        <Route path="*" element={<Navigate to="/home" />} />
       </Routes>
     </BrowserRouter>
   );
