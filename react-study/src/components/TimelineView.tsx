@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, Tag, Rate, Space, Timeline } from 'antd';
 import { HeartOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import { useMemoryStore } from '../store/userMemoryStore';

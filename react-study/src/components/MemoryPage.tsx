@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button, Tabs, message, Spin } from 'antd';
 import { PlusOutlined, CameraOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import GalleryView from '../components/GalleryView';
@@ -26,12 +26,12 @@ export default function MemoryPage() {
           id: board.id ?? index,
           date: board.date,
           title: board.title,
-          location: board.place,
-          category: board.category as Memory['category'],
-          content: board.content,
+          location: board.place ?? '',
+          category: (board.category as Memory['category']) ?? '축구',
+          content: board.content ?? '',
           images: board.imageUrl ? [board.imageUrl] : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
-          mood: board.mood,
-          weather: board.weather as Memory['weather']
+          mood: board.mood ?? 3,
+          weather: (board.weather as Memory['weather']) ?? '맑음'
         }));
 
         setMemories(memories);
