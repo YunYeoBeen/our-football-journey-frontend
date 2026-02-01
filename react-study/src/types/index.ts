@@ -5,7 +5,8 @@ export interface User {
 
 export interface Memory {
   id: number;
-  date: string;
+  startDate: string;
+  endDate?: string;
   title: string;
   location: string;
   place?: string; // 서버 API와의 호환성

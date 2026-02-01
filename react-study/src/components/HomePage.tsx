@@ -181,9 +181,9 @@ const HomePage: React.FC = () => {
     }
   };
 
-  const refreshList = () => {
+  const refreshList = async () => {
     thumbnailCache.clear();
-    fetchItems(0);
+    await fetchItems(0);
   };
 
   // Render content based on active tab

@@ -8,7 +8,8 @@ export type CalendarEventType = 'MATCH' | 'BOARD';
 
 // 캘린더 이벤트
 export interface CalendarEventDto {
-  date: string;                    // ISO DateTime
+  startDate: string;               // ISO DateTime
+  endDate?: string;                // ISO DateTime (optional)
   type: CalendarEventType;
   matchId?: number;
   boardId?: number;

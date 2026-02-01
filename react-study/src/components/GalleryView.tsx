@@ -61,7 +61,7 @@ export default function GalleryView() {
             </h3>
             <Space orientation="vertical" size={4} style={{ width: '100%' }}>
               <div style={{ fontSize: '13px', color: '#999' }}>
-                <ClockCircleOutlined /> {memory.date}
+                <ClockCircleOutlined /> {memory.startDate}
               </div>
               <div style={{ fontSize: '13px', color: '#666' }}>
                 <EnvironmentOutlined /> {memory.location}

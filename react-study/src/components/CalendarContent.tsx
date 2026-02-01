@@ -275,15 +275,23 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     fetchCalendarEvents();
   }, [currentMonth]);
 
-  // Group events by date
+  // Group events by date (considering date ranges)
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEventDto[]>();
     calendarEvents.forEach(event => {
-      const dateKey = dayjs(event.date).format('YYYY-MM-DD');
-      if (!map.has(dateKey)) {
-        map.set(dateKey, []);
+      const startDate = dayjs(event.startDate);
+      const endDate = event.endDate ? dayjs(event.endDate) : startDate;
+
+      // Add event to all dates in the range
+      let current = startDate;
+      while (current.isBefore(endDate, 'day') || current.isSame(endDate, 'day')) {
+        const dateKey = current.format('YYYY-MM-DD');
+        if (!map.has(dateKey)) {
+          map.set(dateKey, []);
+        }
+        map.get(dateKey)!.push(event);
+        current = current.add(1, 'day');
       }
-      map.get(dateKey)!.push(event);
     });
     return map;
   }, [calendarEvents]);
@@ -326,22 +334,53 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     onDateSelect?.(newSelected);
   };
 
+  // Format date range for display
+  const formatEventDateRange = (startDateStr: string, endDateStr?: string): string => {
+    const startDate = dayjs(startDateStr);
+    const endDate = endDateStr ? dayjs(endDateStr) : null;
+
+    // Single day or no end date
+    if (!endDate || startDate.isSame(endDate, 'day')) {
+      return startDate.format('M월 D일 (ddd)');
+    }
+
+    // Same month: "1월 15-17일"
+    if (startDate.isSame(endDate, 'month')) {
+      return `${startDate.format('M월 D')}-${endDate.format('D일 (ddd)')}`;
+    }
+
+    // Different month: "1월 30일 - 2월 2일"
+    return `${startDate.format('M월 D일')} - ${endDate.format('M월 D일 (ddd)')}`;
+  };
+
   const today = dayjs();
 
   // Events for the selected date (week view detail panel)
   const selectedDayEvents = useMemo(() => {
     if (!selectedDate) return [];
     return calendarEvents
-      .filter(e => dayjs(e.date).format('YYYY-MM-DD') === selectedDate)
-      .sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+      .filter(e => {
+        const startDate = dayjs(e.startDate);
+        const endDate = e.endDate ? dayjs(e.endDate) : startDate;
+        const selected = dayjs(selectedDate);
+        return (selected.isAfter(startDate, 'day') || selected.isSame(startDate, 'day')) &&
+               (selected.isBefore(endDate, 'day') || selected.isSame(endDate, 'day'));
+      })
+      .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, selectedDate]);
 
   // Events list for month view (all or filtered)
   const sortedEvents = useMemo(() => {
     const filtered = selectedDate
-      ? calendarEvents.filter(e => dayjs(e.date).format('YYYY-MM-DD') === selectedDate)
+      ? calendarEvents.filter(e => {
+          const startDate = dayjs(e.startDate);
+          const endDate = e.endDate ? dayjs(e.endDate) : startDate;
+          const selected = dayjs(selectedDate);
+          return (selected.isAfter(startDate, 'day') || selected.isSame(startDate, 'day')) &&
+                 (selected.isBefore(endDate, 'day') || selected.isSame(endDate, 'day'));
+        })
       : calendarEvents;
-    return [...filtered].sort((a, b) => dayjs(a.date).diff(dayjs(b.date)));
+    return [...filtered].sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, selectedDate]);
 
   // Render a single day cell
@@ -501,7 +540,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
               color: colors.textMuted,
               margin: 0,
             }}>
-              {dayjs(event.date).format('M월 D일 (ddd)')}
+              {formatEventDateRange(event.startDate, event.endDate)}
             </p>
           </div>
           <span style={{
@@ -582,7 +621,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             color: colors.textMuted,
             margin: 0,
           }}>
-            {dayjs(event.date).format('M월 D일 (ddd) HH:mm')}
+            {dayjs(event.startDate).format('M월 D일 (ddd) HH:mm')}
           </p>
           {event.attendances && event.attendances.length > 0 && (
             <p style={{

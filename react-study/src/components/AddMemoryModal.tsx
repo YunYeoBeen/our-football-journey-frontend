@@ -29,7 +29,7 @@ const styles = {
 interface AddMemoryModalProps {
   visible: boolean;
   onClose: () => void;
-  onCreated?: () => void;
+  onCreated?: () => void | Promise<void>;
   initialDate?: string | null;
 }
 
@@ -37,6 +37,9 @@ const MAX_IMAGES = 5;
 
 export default function AddMemoryModal({ visible, onClose, onCreated, initialDate }: AddMemoryModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const locationInputRef = useRef<HTMLInputElement>(null);
+  const contentInputRef = useRef<HTMLTextAreaElement>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -46,7 +49,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
     location: '',
     category: '데이트' as Memory['category'],
     content: '',
-    date: dayjs().format('YYYY-MM-DD'),
+    startDate: dayjs().format('YYYY-MM-DD'),
+    endDate: dayjs().format('YYYY-MM-DD'),
+    isSingleDay: true,
     mood: 5,
     weather: '맑음' as Memory['weather']
   });
@@ -54,7 +59,11 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
   // Apply initialDate when modal opens
   useEffect(() => {
     if (visible && initialDate) {
-      setFormData(prev => ({ ...prev, date: initialDate }));
+      setFormData(prev => ({
+        ...prev,
+        startDate: initialDate,
+        endDate: initialDate
+      }));
     }
   }, [visible, initialDate]);
 
@@ -85,8 +94,19 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
   };
 
   const handleSubmit = async () => {
-    if (!formData.content) {
-      message.warning('Please enter content!');
+    if (!formData.title.trim()) {
+      message.warning('제목을 입력해주세요!');
+      titleInputRef.current?.focus();
+      return;
+    }
+    if (!formData.location.trim()) {
+      message.warning('장소를 입력해주세요!');
+      locationInputRef.current?.focus();
+      return;
+    }
+    if (!formData.content.trim()) {
+      message.warning('내용을 입력해주세요!');
+      contentInputRef.current?.focus();
       return;
     }
 
@@ -104,8 +124,15 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
         }));
       }
 
+      // Validation: 종료 날짜가 시작 날짜보다 이전인지 확인
+      if (!formData.isSingleDay && formData.endDate < formData.startDate) {
+        message.warning('종료 날짜는 시작 날짜보다 이전일 수 없습니다!');
+        return;
+      }
+
       const boardData = {
-        date: `${formData.date}T00:00:00`,  // LocalDateTime 형식으로 변환
+        startDate: `${formData.startDate}T00:00:00`,
+        endDate: formData.isSingleDay ? undefined : `${formData.endDate}T00:00:00`,
         title: formData.title || 'Untitled',
         place: formData.location || 'Unknown',
         category: CategoryMap.toServer[formData.category] || 'DATE',
@@ -117,8 +144,8 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
 
       await boardApi.create(boardData);
       message.success('Memory saved!');
-      onCreated?.();
       handleClose();
+      await onCreated?.();
     } catch (error) {
       // 저장 실패
       message.error('Failed to save. Please try again.');
@@ -133,7 +160,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
       location: '',
       category: '데이트',
       content: '',
-      date: dayjs().format('YYYY-MM-DD'),
+      startDate: dayjs().format('YYYY-MM-DD'),
+      endDate: dayjs().format('YYYY-MM-DD'),
+      isSingleDay: true,
       mood: 5,
       weather: '맑음'
     });
@@ -317,13 +346,14 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
           {/* Title */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-              Title
+              제목 <span style={{ color: styles.colors.primary }}>*</span>
             </label>
             <input
+              ref={titleInputRef}
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              placeholder="Enter a title for your memory"
+              placeholder="추억의 제목을 입력하세요"
               style={{
                 width: '100%',
                 padding: '8px 12px',
@@ -345,37 +375,123 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
             />
           </div>
 
-          {/* Date & Location Row */}
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                Date
-              </label>
+          {/* Date Range & Location */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {/* 당일 체크박스 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                type="checkbox"
+                id="singleDay"
+                checked={formData.isSingleDay}
+                onChange={(e) => {
+                  const isSingleDay = e.target.checked;
+                  setFormData({
+                    ...formData,
+                    isSingleDay,
+                    endDate: isSingleDay ? formData.startDate : formData.endDate
+                  });
+                }}
                 style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  backgroundColor: 'white',
-                  border: `1px solid ${styles.colors.gray200}`,
-                  borderRadius: 6,
-                  outline: 'none',
-                  fontFamily: styles.fontFamily,
+                  width: 16,
+                  height: 16,
+                  cursor: 'pointer',
+                  accentColor: styles.colors.primary,
                 }}
               />
+              <label
+                htmlFor="singleDay"
+                style={{
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: styles.colors.gray700,
+                  cursor: 'pointer',
+                  userSelect: 'none',
+                }}
+              >
+                당일 이벤트
+              </label>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+
+            {/* 날짜 필드들 */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {/* 시작 날짜 */}
+              <div style={{
+                flex: formData.isSingleDay ? '1 1 100%' : '1 1 calc(50% - 6px)',
+                minWidth: 120,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 4
+              }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
+                  {formData.isSingleDay ? '날짜' : '시작 날짜'}
+                </label>
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => {
+                    const newStartDate = e.target.value;
+                    setFormData({
+                      ...formData,
+                      startDate: newStartDate,
+                      endDate: formData.isSingleDay ? newStartDate : formData.endDate
+                    });
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: 14,
+                    backgroundColor: 'white',
+                    border: `1px solid ${styles.colors.gray200}`,
+                    borderRadius: 6,
+                    outline: 'none',
+                    fontFamily: styles.fontFamily,
+                  }}
+                />
+              </div>
+
+              {/* 끝 날짜 (당일이 아닐 때만 표시) */}
+              {!formData.isSingleDay && (
+                <div style={{
+                  flex: '1 1 calc(50% - 6px)',
+                  minWidth: 120,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4
+                }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
+                    종료 날짜
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.endDate}
+                    min={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      fontSize: 14,
+                      backgroundColor: 'white',
+                      border: `1px solid ${styles.colors.gray200}`,
+                      borderRadius: 6,
+                      outline: 'none',
+                      fontFamily: styles.fontFamily,
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 장소 */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                Location
+                장소 <span style={{ color: styles.colors.primary }}>*</span>
               </label>
               <input
+                ref={locationInputRef}
                 type="text"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="Location"
+                placeholder="장소를 입력하세요"
                 style={{
                   width: '100%',
                   padding: '8px 12px',
@@ -480,12 +596,13 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
           {/* Content */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-              Content
+              내용 <span style={{ color: styles.colors.primary }}>*</span>
             </label>
             <textarea
+              ref={contentInputRef}
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-              placeholder="Write about your memory..."
+              placeholder="추억을 기록하세요..."
               rows={3}
               style={{
                 width: '100%',

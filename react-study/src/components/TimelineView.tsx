@@ -28,7 +28,7 @@ export default function TimelineView() {
           dot: <HeartOutlined style={{ fontSize: 20 }} />,
           label: (
             <div style={{ fontWeight: 'bold', color: '#ff9a76' }}>
-              {memory.date}
+              {memory.startDate}
             </div>
           ),
           children: (

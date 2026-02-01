@@ -3,7 +3,8 @@ import { CategoryMap, WeatherMap } from '../types';
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/board`;
 
 export interface BoardCreateRequest {
-  date: string;
+  startDate: string;
+  endDate?: string;
   title: string;
   place: string;
   category: string;
@@ -15,7 +16,8 @@ export interface BoardCreateRequest {
 
 export interface BoardResponse {
   id?: number;
-  date: string;
+  startDate: string;
+  endDate?: string;
   title: string;
   place: string;
   category: string;
@@ -31,7 +33,8 @@ export interface BoardListItem {
   id: number;
   title: string;
   thumbnail: string | null;  // S3 key (presigned URL 발급 필요)
-  date: string;
+  startDate: string;
+  endDate?: string;
   place?: string;
   category?: string;
   content?: string;
@@ -57,7 +60,8 @@ export interface BoardSearchParams {
 // 게시물 상세 조회 응답
 export interface BoardDetailResponse {
   id: number;
-  date: string;
+  startDate: string;
+  endDate?: string;
   title: string;
   place: string;
   category: string;
@@ -72,7 +76,8 @@ export interface BoardDetailResponse {
 // 게시물 수정 요청
 export interface BoardUpdateRequest {
   title?: string;
-  date?: string;
+  startDate?: string;
+  endDate?: string;
   content?: string;
   mood?: number;
   weather?: string;

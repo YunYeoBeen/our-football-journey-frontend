@@ -404,7 +404,7 @@ const TimelinePage: React.FC = () => {
                       textTransform: 'uppercase',
                       letterSpacing: '0.05em',
                       margin: 0,
-                    }}>{formatDate(item.date)}</p>
+                    }}>{formatDate(item.startDate)}</p>
                     {index === 0 && (
                       <span style={{
                         fontSize: 18,

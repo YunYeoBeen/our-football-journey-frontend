@@ -43,6 +43,29 @@ const formatDate = (dateStr: string): string => {
   return date.format('MMM D, YYYY');
 };
 
+const formatDateRange = (startDateStr: string, endDateStr?: string): string => {
+  const startDate = dayjs(startDateStr);
+  const endDate = endDateStr ? dayjs(endDateStr) : null;
+
+  // 단일 날짜 또는 endDate가 없는 경우
+  if (!endDate || startDate.isSame(endDate, 'day')) {
+    return formatDate(startDateStr);
+  }
+
+  // 같은 달: "Jan 15-17, 2026"
+  if (startDate.isSame(endDate, 'month')) {
+    return `${startDate.format('MMM D')}-${endDate.format('D, YYYY')}`;
+  }
+
+  // 다른 달: "Jan 30 - Feb 2, 2026"
+  if (startDate.isSame(endDate, 'year')) {
+    return `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`;
+  }
+
+  // 다른 년도: "Dec 30, 2025 - Jan 2, 2026"
+  return `${startDate.format('MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`;
+};
+
 interface BoardItemWithUrl extends BoardListItem {
   thumbnailUrl?: string;
 }
@@ -584,7 +607,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
                     margin: 0,
-                  }}>{formatDate(item.date)}</p>
+                  }}>{formatDateRange(item.startDate, item.endDate)}</p>
                   {index === 0 && (
                     <span style={{
                       fontSize: 18,

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { message } from 'antd';
 import { boardApi } from '../services/boardApi';
 import type { BoardDetailResponse } from '../services/boardApi';
+import ImageViewer from './ImageViewer';
 import { s3Api } from '../services/s3Api';
 
 const styles = {
@@ -51,14 +52,16 @@ interface MemoryDetailModalProps {
   visible: boolean;
   boardId: number | null;
   onClose: () => void;
-  onDeleted?: () => void;
-  onUpdated?: () => void;
+  onDeleted?: () => void | Promise<void>;
+  onUpdated?: () => void | Promise<void>;
 }
 
 export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted, onUpdated }: MemoryDetailModalProps) {
   const [detail, setDetail] = useState<BoardDetailResponse | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [imageViewerVisible, setImageViewerVisible] = useState(false);
+  const [imageViewerIndex, setImageViewerIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -68,7 +71,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   // Edit form state
   const [editForm, setEditForm] = useState({
     title: '',
-    date: '',
+    startDate: '',
+    endDate: '',
     place: '',
     category: '',
     weather: '',
@@ -98,7 +102,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       // Initialize edit form
       setEditForm({
         title: response.title,
-        date: response.date,
+        startDate: response.startDate,
+        endDate: response.endDate || response.startDate,
         place: response.place,
         category: response.category,
         weather: response.weather,
@@ -137,8 +142,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       setIsDeleting(true);
       await boardApi.delete(boardId);
       message.success('Memory deleted!');
+      await onDeleted?.();
       handleClose();
-      onDeleted?.();
     } catch {
       message.error('Failed to delete. Please try again.');
     } finally {
@@ -193,7 +198,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
 
       await boardApi.update(boardId, {
         title: editForm.title,
-        date: editForm.date,
+        startDate: editForm.startDate,
+        endDate: editForm.endDate === editForm.startDate ? undefined : editForm.endDate,
         place: editForm.place,
         category: editForm.category,
         weather: editForm.weather,
@@ -207,7 +213,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       message.success('Memory updated!');
       setIsEditMode(false);
       await fetchDetail(boardId);
-      onUpdated?.();
+      await onUpdated?.();
     } catch {
       message.error('Failed to update. Please try again.');
     } finally {
@@ -396,10 +402,15 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                     <img
                       src={imageUrls[currentImageIndex]}
                       alt={detail.title}
+                      onClick={() => {
+                        setImageViewerIndex(currentImageIndex);
+                        setImageViewerVisible(true);
+                      }}
                       style={{
                         width: '100%',
                         height: 280,
                         objectFit: 'cover',
+                        cursor: 'pointer',
                       }}
                     />
                     {/* Image Navigation */}
@@ -523,16 +534,16 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                     />
                   </div>
 
-                  {/* Date & Place */}
+                  {/* Start Date & End Date */}
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
-                        Date
+                        시작 날짜
                       </label>
                       <input
                         type="date"
-                        value={editForm.date}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, date: e.target.value }))}
+                        value={editForm.startDate.split('T')[0]}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
                         style={{
                           width: '100%',
                           padding: '10px 12px',
@@ -544,6 +555,29 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                       />
                     </div>
                     <div style={{ flex: 1 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
+                        종료 날짜
+                      </label>
+                      <input
+                        type="date"
+                        value={editForm.endDate.split('T')[0]}
+                        min={editForm.startDate.split('T')[0]}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: `1px solid ${styles.colors.gray200}`,
+                          borderRadius: 8,
+                          fontSize: 14,
+                          outline: 'none',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Place */}
+                  <div style={{ marginBottom: 16 }}>
+                    <div>
                       <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
                         Place
                       </label>
@@ -676,7 +710,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                         if (detail) {
                           setEditForm({
                             title: detail.title,
-                            date: detail.date,
+                            startDate: detail.startDate,
+                            endDate: detail.endDate || detail.startDate,
                             place: detail.place,
                             category: detail.category,
                             weather: detail.weather,
@@ -735,7 +770,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                     </h2>
                     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 14, color: styles.colors.textMuted }}>
-                        📅 {detail.date}
+                        📅 {detail.endDate && detail.startDate !== detail.endDate ? `${detail.startDate.split('T')[0]} - ${detail.endDate.split('T')[0]}` : detail.startDate.split('T')[0]}
                       </span>
                       <span style={{ fontSize: 14, color: styles.colors.textMuted }}>
                         📍 {detail.place}
@@ -912,6 +947,13 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           </div>
         )}
       </div>
+
+      <ImageViewer
+        images={imageUrls}
+        initialIndex={imageViewerIndex}
+        visible={imageViewerVisible}
+        onClose={() => setImageViewerVisible(false)}
+      />
 
       <style>{`
         @keyframes fadeIn {

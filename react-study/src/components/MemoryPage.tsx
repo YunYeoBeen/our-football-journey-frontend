@@ -24,7 +24,8 @@ export default function MemoryPage() {
         // 서버 응답을 Memory 타입으로 변환
         const memories: Memory[] = response.content.map((board, index) => ({
           id: board.id ?? index,
-          date: board.date,
+          startDate: board.startDate,
+          endDate: board.endDate,
           title: board.title,
           location: board.place ?? '',
           category: (board.category as Memory['category']) ?? '축구',
