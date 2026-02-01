@@ -74,7 +74,7 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
         handleClose();
       }
     } catch (error) {
-      console.error('Profile image upload failed:', error);
+      // 프로필 이미지 업로드 실패
       message.error('프로필 이미지 변경에 실패했습니다.');
     } finally {
       setIsUploading(false);

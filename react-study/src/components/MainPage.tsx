@@ -137,23 +137,17 @@ const MainPage: React.FC = () => {
       }
 
       const response = await boardApi.getAllList(pageNum, 12);
-      console.log('API response:', response);
 
-      // thumbnail이 있는 아이템들의 presigned URL 발급
       const itemsWithKeys = response.content.filter((item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null);
-      console.log('Items with keys:', itemsWithKeys);
       let urlMap: Record<string, string> = {};
 
       if (itemsWithKeys.length > 0) {
-        // 캐시에 없는 key만 요청
         const keysToFetch = itemsWithKeys
           .filter(item => !thumbnailCache.has(item.thumbnail))
           .map(item => item.thumbnail);
-        console.log('Keys to fetch:', keysToFetch);
 
         if (keysToFetch.length > 0) {
           const urls = await s3Api.getPresignedViewUrls(keysToFetch);
-          console.log('Presigned URLs:', urls);
           keysToFetch.forEach((key, idx) => {
             thumbnailCache.set(key, urls[idx]);
             urlMap[key] = urls[idx];
@@ -182,8 +176,8 @@ const MainPage: React.FC = () => {
 
       setHasNext(response.hasNext);
       setPage(pageNum);
-    } catch (error) {
-      console.error('게시물 조회 실패:', error);
+    } catch {
+      // 게시물 조회 실패
     } finally {
       setLoading(false);
       setLoadingMore(false);

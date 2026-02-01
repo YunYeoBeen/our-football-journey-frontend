@@ -36,7 +36,7 @@ export default function MemoryPage() {
 
         setMemories(memories);
       } catch (error) {
-        console.error('게시물 조회 실패:', error);
+        // 게시물 조회 실패
         message.error('추억을 불러오는데 실패했습니다.');
       } finally {
         setLoading(false);

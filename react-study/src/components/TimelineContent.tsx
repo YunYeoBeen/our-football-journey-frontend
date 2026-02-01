@@ -137,7 +137,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
       setSearchHasNext(response.hasNext);
       setSearchPage(page);
     } catch (error) {
-      console.error('Search failed:', error);
+      // 검색 실패
     } finally {
       setSearchLoading(false);
     }

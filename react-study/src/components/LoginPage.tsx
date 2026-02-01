@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import GoogleLoginButton from './GoogleLoginButton';
+import { s3Api } from '../services/s3Api';
 
 // 공통 스타일
 const styles = {
@@ -18,6 +19,20 @@ const styles = {
 
 export default function LoginPage() {
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [mainImages, setMainImages] = useState<string[]>([]);
+
+  // 메인 이미지 로드
+  useEffect(() => {
+    const fetchMainImages = async () => {
+      try {
+        const urls = await s3Api.getMainImages();
+        setMainImages(urls);
+      } catch {
+        // 이미지 로드 실패 시 빈 배열 유지
+      }
+    };
+    fetchMainImages();
+  }, []);
 
   // 허용되지 않은 사용자 체크
   useEffect(() => {
@@ -128,64 +143,49 @@ export default function LoginPage() {
         </div>
 
         {/* Decorative Image Grid */}
-        <div
-          style={{
-            marginTop: '64px',
-            width: '100%',
-            maxWidth: '384px',
-          }}
-        >
+        {mainImages.length > 0 && (
           <div
             style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '8px',
-              opacity: 0.4,
-              filter: 'grayscale(100%)',
-              transition: 'all 0.7s ease',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.filter = 'grayscale(0%)';
-              e.currentTarget.style.opacity = '0.7';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.filter = 'grayscale(100%)';
-              e.currentTarget.style.opacity = '0.4';
+              marginTop: '64px',
+              width: '100%',
+              maxWidth: '384px',
             }}
           >
             <div
               style={{
-                aspectRatio: '1',
-                backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBM8Kxr-yEHTAwKFC0ByATQbtATyspGGNPHhiQ5BaEKbyx0F8x_NTRWDVMAXuw3RhE1J6fjWqRprDaluNxgAZwauGDDlVOew2GUtcLGFtTIqHAd6WglvzZKwtqF78CO3JndFFK4SsFy-BTZXCMMmwvWmQYlkQHGcN4_F7nd4qimwhbAxwtm5R8zO5VTcJckuEOegfuLXpFk_U_Il-EqE3tpPepcQQpk-6UGJgfoIUkJkodZJQqbuM7kn4ons0WF_AuLikYTSF_dI0pp")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: '8px',
+                opacity: 0.4,
+                filter: 'grayscale(100%)',
+                transition: 'all 0.7s ease',
               }}
-            />
-            <div
-              style={{
-                aspectRatio: '1',
-                backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCIC7rh_llBisJ8qGOiXFu8oywQOlkW-PzROiAwWZMHy63_T72DoZcezwFRZWawOuH9xzemTHtqmbEE0tbKsYpHDFRzEXhHsLp4-B4qsC2BtQ914Uu--tq1_XSB5SVqsu_Yz5yQaeVDjU1vbmwVOgK66qnROD5UtJpjjihGAXE7MTA6PKQYqNaXI3CsLavM6Uwdz2LhshKDUPvkndj-AdLWDSmfrcheHKZME8RdYSL--fChxI6Kg6flqA2zYIY9mTTzq3-Ooqq4IIXk")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                transform: 'translateY(8px)',
+              onMouseEnter={(e) => {
+                e.currentTarget.style.filter = 'grayscale(0%)';
+                e.currentTarget.style.opacity = '0.7';
               }}
-            />
-            <div
-              style={{
-                aspectRatio: '1',
-                backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAmAr6IFm3guPytQCFJzG5ci9ktfp_Um0lPUCKnkD4_g4dO6raFHfCRxyFzjNtREQImgtwDvr2bQGcZkpcmKnMvYh0GjT4uPYbqE-mrunDPM4iI-0IwA6Xyp5p2QMjwy_0EhrcpbxZko8z2GV1SqOnsMJYf2CNE_OrOX2kyXmgt1M__s6u173KgS05O5NvMYZQ_nfXRKeZos_C8H1fVFpBz9PVY50fzN8Pyu3qbvo6k062BrNcbPkE32ISmnZfUgLiCKiRxsUkosLB0")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                borderRadius: '8px',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+              onMouseLeave={(e) => {
+                e.currentTarget.style.filter = 'grayscale(100%)';
+                e.currentTarget.style.opacity = '0.4';
               }}
-            />
+            >
+              {mainImages.map((url, index) => (
+                <div
+                  key={index}
+                  style={{
+                    aspectRatio: '1',
+                    backgroundImage: `url("${url}")`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    transform: index === 1 ? 'translateY(8px)' : undefined,
+                  }}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Footer */}

@@ -20,7 +20,7 @@ function App() {
           email: decoded.email
         });
       } catch (err) {
-        console.error('토큰 복구 실패', err);
+        // 토큰 복구 실패
         localStorage.removeItem('accessToken');
       }
     }

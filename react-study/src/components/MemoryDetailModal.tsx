@@ -116,8 +116,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       } else {
         setImageUrls([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch detail:', error);
+    } catch {
+      // 상세 조회 실패
     } finally {
       setLoading(false);
     }
@@ -140,8 +140,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       message.success('Memory deleted!');
       handleClose();
       onDeleted?.();
-    } catch (error) {
-      console.error('Delete failed:', error);
+    } catch {
       message.error('Failed to delete. Please try again.');
     } finally {
       setIsDeleting(false);
@@ -210,8 +209,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       setIsEditMode(false);
       await fetchDetail(boardId);
       onUpdated?.();
-    } catch (error) {
-      console.error('Update failed:', error);
+    } catch {
       message.error('Failed to update. Please try again.');
     } finally {
       setIsSaving(false);

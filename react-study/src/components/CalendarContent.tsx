@@ -86,16 +86,29 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return weeks;
   }, [currentMonth]);
 
-  // Measure actual grid height
+  // Measure actual grid height with ResizeObserver
   useEffect(() => {
-    if (gridRef.current && viewMode === 'month' && calendarWeeks.length > 0) {
-      const gridHeight = gridRef.current.offsetHeight;
-      const rowHeight = gridHeight / calendarWeeks.length;
-      if (rowHeight > 0) {
-        setMeasuredWeekHeight(rowHeight);
+    const measureGrid = () => {
+      if (gridRef.current && calendarWeeks.length > 0) {
+        const gridHeight = gridRef.current.offsetHeight;
+        const rowHeight = gridHeight / calendarWeeks.length;
+        if (rowHeight > 0 && rowHeight !== measuredWeekHeight) {
+          setMeasuredWeekHeight(rowHeight);
+        }
       }
+    };
+
+    // Initial measure after render
+    requestAnimationFrame(measureGrid);
+
+    // Observe size changes
+    const observer = new ResizeObserver(measureGrid);
+    if (gridRef.current) {
+      observer.observe(gridRef.current);
     }
-  }, [viewMode, currentMonth, calendarWeeks.length]);
+
+    return () => observer.disconnect();
+  }, [calendarWeeks.length, measuredWeekHeight]);
 
   // Grid heights - use measured height
   const weekHeight = measuredWeekHeight;
@@ -225,8 +238,8 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             : event
         )
       );
-    } catch (error) {
-      console.error('Failed to update attendance:', error);
+    } catch {
+      // 참석 상태 업데이트 실패
     } finally {
       setAttendanceUpdating(false);
       setHoveredMatchId(null);
@@ -253,8 +266,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         const end = currentMonth.endOf('month').format('YYYY-MM-DDTHH:mm:ss');
         const response = await matchApi.getCalendar(start, end);
         setCalendarEvents(response.events);
-      } catch (error) {
-        console.error('Failed to fetch calendar events:', error);
+      } catch {
         setCalendarEvents([]);
       } finally {
         setEventsLoading(false);

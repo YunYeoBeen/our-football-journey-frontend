@@ -120,7 +120,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
       onCreated?.();
       handleClose();
     } catch (error) {
-      console.error('Save failed:', error);
+      // 저장 실패
       message.error('Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);

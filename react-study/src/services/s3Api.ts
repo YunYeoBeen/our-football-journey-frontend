@@ -78,5 +78,19 @@ export const s3Api = {
 
     const data: { key: string; url: string }[] = await response.json();
     return data.map(item => item.url);
+  },
+
+  // 메인 페이지 이미지 조회 (인증 불필요)
+  async getMainImages(): Promise<string[]> {
+    const response = await fetch(`${API_BASE_URL}/main-images`, {
+      method: 'GET'
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to get main images');
+    }
+
+    const data: { key: string; url: string }[] = await response.json();
+    return data.map(item => item.url);
   }
 };

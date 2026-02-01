@@ -124,7 +124,7 @@ const TimelinePage: React.FC = () => {
       setHasNext(response.hasNext);
       setPage(pageNum);
     } catch (error) {
-      console.error('Failed to fetch items:', error);
+      // 게시물 조회 실패
     } finally {
       setLoading(false);
       setLoadingMore(false);

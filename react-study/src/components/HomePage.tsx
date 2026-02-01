@@ -63,7 +63,7 @@ const HomePage: React.FC = () => {
         if (savedProfileKey) {
           setProfileImageKey(savedProfileKey);
         }
-        console.error('Failed to fetch profile:', error);
+        // 프로필 조회 실패
       }
     };
     fetchMyProfile();
@@ -76,8 +76,8 @@ const HomePage: React.FC = () => {
         try {
           const url = await s3Api.getPresignedViewUrl(profileImageKey, 'PROFILE');
           setProfileImageUrl(url);
-        } catch (error) {
-          console.error('Failed to get profile image URL:', error);
+        } catch {
+          // 프로필 이미지 URL 조회 실패
         }
       }
     };
@@ -133,8 +133,8 @@ const HomePage: React.FC = () => {
 
       setHasNext(response.hasNext);
       setPage(pageNum);
-    } catch (error) {
-      console.error('Failed to fetch items:', error);
+    } catch {
+      // 게시물 조회 실패
     } finally {
       setLoading(false);
       setLoadingMore(false);
@@ -165,8 +165,8 @@ const HomePage: React.FC = () => {
     try {
       const url = await s3Api.getPresignedViewUrl(newImageKey, 'PROFILE');
       setProfileImageUrl(url);
-    } catch (error) {
-      console.error('Failed to get new profile image URL:', error);
+    } catch {
+      // 새 프로필 이미지 URL 조회 실패
     }
   };
 
