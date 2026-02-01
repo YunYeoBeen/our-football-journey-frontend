@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import dayjs from 'dayjs';
 import type { Memory } from '../types';
@@ -30,12 +30,15 @@ interface AddMemoryModalProps {
   visible: boolean;
   onClose: () => void;
   onCreated?: () => void;
+  initialDate?: string | null;
 }
 
-export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemoryModalProps) {
+const MAX_IMAGES = 5;
+
+export default function AddMemoryModal({ visible, onClose, onCreated, initialDate }: AddMemoryModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -48,19 +51,37 @@ export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemor
     weather: '맑음' as Memory['weather']
   });
 
-  const handleFileSelect = (file: File) => {
-    if (file && file.type.startsWith('image/')) {
-      setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+  // Apply initialDate when modal opens
+  useEffect(() => {
+    if (visible && initialDate) {
+      setFormData(prev => ({ ...prev, date: initialDate }));
     }
+  }, [visible, initialDate]);
+
+  const handleFilesSelect = (files: FileList | File[]) => {
+    const newFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    const remaining = MAX_IMAGES - selectedFiles.length;
+    const filesToAdd = newFiles.slice(0, remaining);
+
+    if (filesToAdd.length > 0) {
+      setSelectedFiles(prev => [...prev, ...filesToAdd]);
+      const urls = filesToAdd.map(f => URL.createObjectURL(f));
+      setPreviewUrls(prev => [...prev, ...urls]);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    URL.revokeObjectURL(previewUrls[index]);
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) handleFileSelect(file);
+    if (e.dataTransfer.files.length > 0) {
+      handleFilesSelect(e.dataTransfer.files);
+    }
   };
 
   const handleSubmit = async () => {
@@ -73,24 +94,18 @@ export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemor
     try {
       const imageKeys: string[] = [];
 
-      // S3 presigned URL로 이미지 업로드
-      if (selectedFile) {
-        // 1. Presigned Upload URL 발급
-        const presignedUrls = await s3Api.getPresignedUploadUrls([selectedFile.name]);
+      // S3 presigned URL로 이미지 업로드 (다중)
+      if (selectedFiles.length > 0) {
+        const presignedUrls = await s3Api.getPresignedUploadUrls(selectedFiles.map(f => f.name));
 
-        if (presignedUrls.length > 0) {
-          const { uploadUrl, key } = presignedUrls[0];
-
-          // 2. S3에 파일 업로드
-          await s3Api.uploadToS3(uploadUrl, selectedFile);
-
-          // 3. 업로드된 이미지의 S3 key 저장
+        await Promise.all(presignedUrls.map(async ({ uploadUrl, key }, idx) => {
+          await s3Api.uploadToS3(uploadUrl, selectedFiles[idx]);
           imageKeys.push(key);
-        }
+        }));
       }
 
       const boardData = {
-        date: formData.date,
+        date: `${formData.date}T00:00:00`,  // LocalDateTime 형식으로 변환
         title: formData.title || 'Untitled',
         place: formData.location || 'Unknown',
         category: CategoryMap.toServer[formData.category] || 'DATE',
@@ -122,8 +137,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemor
       mood: 5,
       weather: '맑음'
     });
-    setSelectedFile(null);
-    setPreviewUrl(null);
+    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    setSelectedFiles([]);
+    setPreviewUrls([]);
     onClose();
   };
 
@@ -209,65 +225,91 @@ export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemor
         {/* Content */}
         <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '60vh', overflowY: 'auto' }}>
           {/* Photo Upload Area */}
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-            onDragLeave={() => setIsDragging(false)}
-            onDrop={handleDrop}
-            style={{
-              position: 'relative',
-              border: `2px dashed ${isDragging ? styles.colors.primary : styles.colors.gray200}`,
-              borderRadius: 8,
-              backgroundColor: isDragging ? `${styles.colors.primary}10` : styles.colors.gray50,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: previewUrl ? 0 : '24px 16px',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              overflow: 'hidden',
-              minHeight: previewUrl ? 160 : 'auto',
-            }}
-          >
-            {previewUrl ? (
-              <img
-                src={previewUrl}
-                alt="Preview"
+          <div>
+            {/* Preview Grid */}
+            {previewUrls.length > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 8,
+                marginBottom: 8,
+              }}>
+                {previewUrls.map((url, idx) => (
+                  <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden' }}>
+                    <img src={url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <button
+                      onClick={() => handleRemoveImage(idx)}
+                      style={{
+                        position: 'absolute',
+                        top: 4,
+                        right: 4,
+                        width: 20,
+                        height: 20,
+                        borderRadius: '50%',
+                        border: 'none',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        color: 'white',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: 1,
+                      }}
+                    >
+                      <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Upload zone (show only if under max) */}
+            {selectedFiles.length < MAX_IMAGES && (
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
                 style={{
-                  width: '100%',
-                  height: 160,
-                  objectFit: 'cover',
+                  border: `2px dashed ${isDragging ? styles.colors.primary : styles.colors.gray200}`,
+                  borderRadius: 8,
+                  backgroundColor: isDragging ? `${styles.colors.primary}10` : styles.colors.gray50,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '16px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
                 }}
-              />
-            ) : (
-              <>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    backgroundColor: `${styles.colors.primary}1a`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 8,
-                  }}
-                >
+              >
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  backgroundColor: `${styles.colors.primary}1a`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 6,
+                }}>
                   <span style={{ fontSize: 20, color: styles.colors.primary, fontFamily: 'Material Symbols Outlined' }}>
                     add_photo_alternate
                   </span>
                 </div>
-                <p style={{ fontSize: 13, fontWeight: 500, color: styles.colors.gray700, margin: 0 }}>
-                  Click or drag photo here
+                <p style={{ fontSize: 12, fontWeight: 500, color: styles.colors.gray700, margin: 0 }}>
+                  사진 추가 ({selectedFiles.length}/{MAX_IMAGES})
                 </p>
-              </>
+              </div>
             )}
+
             <input
               ref={fileInputRef}
               type="file"
               accept="image/*"
-              onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+              multiple
+              onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
               style={{ display: 'none' }}
             />
           </div>
@@ -369,10 +411,10 @@ export default function AddMemoryModal({ visible, onClose, onCreated }: AddMemor
                   cursor: 'pointer',
                 }}
               >
-                <option value="데이트">💕 Date</option>
-                <option value="기념일">🎉 Anniversary</option>
-                <option value="여행">✈️ Travel</option>
-                <option value="일상">🌿 Daily</option>
+                <option value="데이트">💕 데이트</option>
+                <option value="여행">✈️ 여행</option>
+                <option value="맛집">🍽️ 맛집</option>
+                <option value="축구">⚽ 축구</option>
               </select>
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>

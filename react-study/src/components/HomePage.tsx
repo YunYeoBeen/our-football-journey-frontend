@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './Layout';
 import type { TabType } from './Layout';
-import FeedContent from './FeedContent';
 import TimelineContent from './TimelineContent';
 import CalendarContent from './CalendarContent';
 import AddMemoryModal from './AddMemoryModal';
@@ -24,11 +23,12 @@ interface BoardItemWithUrl extends BoardListItem {
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<TabType>('feed');
+  const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
 
   // Profile state
   const [profileImageKey, setProfileImageKey] = useState<string | null>(null);
@@ -59,7 +59,6 @@ const HomePage: React.FC = () => {
           localStorage.setItem('profileImageKey', profile.imageKey);
         }
       } catch (error) {
-        // 서버 조회 실패 시 localStorage에서 fallback
         const savedProfileKey = localStorage.getItem('profileImageKey');
         if (savedProfileKey) {
           setProfileImageKey(savedProfileKey);
@@ -96,7 +95,6 @@ const HomePage: React.FC = () => {
 
       const response = await boardApi.getAllList(pageNum, 12);
 
-      // Get presigned URLs for thumbnails
       const itemsWithKeys = response.content.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
       );
@@ -164,7 +162,6 @@ const HomePage: React.FC = () => {
     setProfileImageKey(newImageKey);
     localStorage.setItem('profileImageKey', newImageKey);
 
-    // Get new presigned URL
     try {
       const url = await s3Api.getPresignedViewUrl(newImageKey, 'PROFILE');
       setProfileImageUrl(url);
@@ -192,17 +189,6 @@ const HomePage: React.FC = () => {
   // Render content based on active tab
   const renderContent = () => {
     switch (activeTab) {
-      case 'feed':
-        return (
-          <FeedContent
-            items={items}
-            loading={loading}
-            loadingMore={loadingMore}
-            hasNext={hasNext}
-            onItemClick={handleItemClick}
-            onLoadMore={handleLoadMore}
-          />
-        );
       case 'timeline':
         return (
           <TimelineContent
@@ -212,6 +198,7 @@ const HomePage: React.FC = () => {
             hasNext={hasNext}
             onItemClick={handleItemClick}
             onLoadMore={handleLoadMore}
+            profileImageUrl={profileImageUrl}
           />
         );
       case 'calendar':
@@ -220,6 +207,7 @@ const HomePage: React.FC = () => {
             items={items}
             loading={loading}
             onItemClick={handleItemClick}
+            onDateSelect={setSelectedCalendarDate}
           />
         );
       default:
@@ -236,18 +224,18 @@ const HomePage: React.FC = () => {
         profileImageUrl={profileImageUrl}
         onProfileClick={handleProfileClick}
         userName={user?.name}
+        onLogoClick={() => setActiveTab('calendar')}
       >
         {renderContent()}
       </Layout>
 
-      {/* Add Memory Modal */}
       <AddMemoryModal
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
         onCreated={refreshList}
+        initialDate={selectedCalendarDate}
       />
 
-      {/* Memory Detail Modal */}
       <MemoryDetailModal
         visible={isDetailModalVisible}
         boardId={selectedBoardId}
@@ -256,7 +244,6 @@ const HomePage: React.FC = () => {
         onUpdated={refreshList}
       />
 
-      {/* Profile Image Modal */}
       <ProfileImageModal
         visible={isProfileModalVisible}
         currentImageUrl={profileImageUrl}

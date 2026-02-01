@@ -25,13 +25,13 @@ const styles = {
 
 const categoryEmoji: Record<string, string> = {
   '데이트': '💕',
-  '기념일': '🎉',
   '여행': '✈️',
-  '일상': '🌿',
+  '맛집': '🍽️',
+  '축구': '⚽',
   'DATE': '💕',
-  'ANNIVERSARY': '🎉',
   'TRAVEL': '✈️',
-  'DAILY': '🌿',
+  'FOOD': '🍽️',
+  'FOOTBALL': '⚽',
 };
 
 const weatherEmoji: Record<string, string> = {
@@ -45,7 +45,7 @@ const weatherEmoji: Record<string, string> = {
   'SNOW': '❄️',
 };
 
-const categories = ['데이트', '기념일', '여행', '일상'];
+const categories = ['데이트', '여행', '맛집', '축구'];
 const weathers = ['맑음', '흐림', '비', '눈'];
 
 interface MemoryDetailModalProps {

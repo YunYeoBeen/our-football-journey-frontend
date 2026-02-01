@@ -1,9 +1,15 @@
-import { useRef, useEffect } from 'react';
-import type { BoardListItem } from '../services/boardApi';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import { boardApi, type BoardListItem, type BoardSearchParams } from '../services/boardApi';
+import { s3Api } from '../services/s3Api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/ko';
 
 dayjs.extend(relativeTime);
+dayjs.locale('ko');
+
+// 사귀기 시작한 날짜
+const TOGETHER_SINCE = dayjs('2026-01-03');
 
 const styles = {
   colors: {
@@ -15,6 +21,15 @@ const styles = {
     gray400: '#9ca3af',
   },
 };
+
+// 카테고리 목록
+const CATEGORIES = [
+  { value: '', label: '전체' },
+  { value: 'DATE', label: '데이트' },
+  { value: 'TRAVEL', label: '여행' },
+  { value: 'FOOD', label: '맛집' },
+  { value: 'FOOTBALL', label: '축구' },
+];
 
 // 날짜 포맷팅 함수
 const formatDate = (dateStr: string): string => {
@@ -39,7 +54,13 @@ interface TimelineContentProps {
   hasNext: boolean;
   onItemClick: (boardId: number) => void;
   onLoadMore: () => void;
+  profileImageUrl?: string;
 }
+
+// D-Day 계산
+const calculateDaysTogether = (): number => {
+  return dayjs().diff(TOGETHER_SINCE, 'day');
+};
 
 const TimelineContent: React.FC<TimelineContentProps> = ({
   items,
@@ -48,9 +69,97 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
   hasNext,
   onItemClick,
   onLoadMore,
+  profileImageUrl,
 }) => {
+  const daysTogether = calculateDaysTogether();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+
+  // 검색 상태
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [isSearchMode, setIsSearchMode] = useState(false);
+  const [searchResults, setSearchResults] = useState<BoardItemWithUrl[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchHasNext, setSearchHasNext] = useState(false);
+  const [searchPage, setSearchPage] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // 검색 실행
+  const executeSearch = useCallback(async (page = 0, append = false) => {
+    const hasSearchCriteria = searchKeyword.trim() || selectedCategory || startDate || endDate;
+    if (!hasSearchCriteria) {
+      setIsSearchMode(false);
+      setSearchResults([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    setIsSearchMode(true);
+
+    try {
+      const params: BoardSearchParams = {
+        keyword: searchKeyword.trim() || undefined,
+        category: selectedCategory || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        page,
+        size: 12,
+      };
+
+      const response = await boardApi.search(params);
+
+      // 썸네일 URL 변환
+      const keysToFetch = response.content
+        .filter(item => item.thumbnail)
+        .map(item => item.thumbnail!);
+
+      let urlMap: Record<string, string> = {};
+      if (keysToFetch.length > 0) {
+        const urls = await s3Api.getPresignedViewUrls(keysToFetch);
+        keysToFetch.forEach((key, idx) => {
+          urlMap[key] = urls[idx];
+        });
+      }
+
+      const resultsWithUrls: BoardItemWithUrl[] = response.content.map(item => ({
+        ...item,
+        thumbnailUrl: item.thumbnail ? urlMap[item.thumbnail] : undefined,
+      }));
+
+      if (append) {
+        setSearchResults(prev => [...prev, ...resultsWithUrls]);
+      } else {
+        setSearchResults(resultsWithUrls);
+      }
+      setSearchHasNext(response.hasNext);
+      setSearchPage(page);
+    } catch (error) {
+      console.error('Search failed:', error);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [searchKeyword, selectedCategory, startDate, endDate]);
+
+  // 검색 초기화
+  const clearSearch = () => {
+    setSearchKeyword('');
+    setSelectedCategory('');
+    setStartDate('');
+    setEndDate('');
+    setIsSearchMode(false);
+    setSearchResults([]);
+    setShowFilters(false);
+  };
+
+  // 검색 더보기
+  const loadMoreSearch = () => {
+    if (!searchLoading && searchHasNext) {
+      executeSearch(searchPage + 1, true);
+    }
+  };
 
   useEffect(() => {
     if (observerRef.current) observerRef.current.disconnect();
@@ -89,12 +198,24 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
             width: 112,
             height: 112,
             borderRadius: '50%',
-            backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuC2G979QXIbP5fBsZDx0LgwFqWps-7ayEs0tiR6dCU9eqfGvTNpviA_432xNbKkjQfL8LgtspPK4SM4nSwfrt6mLx5T8RAUMHOQbac1nnzl4wqaB3PVzBM7upJTz34b_P9KYA7my6G-gGm7ONsuB8B3TuwhH1WdbVogkydoqgvve5SEq-j_cBs7sAcWoubmwPxiM5ADhTnK8iqzPewUR01Q5d5ZPUdGzayX0BoVEZEsb2LDEu6wtGF18sP6fRAnqjA3L7o9_t-bfwNp")',
+            backgroundImage: profileImageUrl ? `url("${profileImageUrl}")` : 'none',
+            backgroundColor: profileImageUrl ? 'transparent' : styles.colors.gray100,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-            border: '4px solid white',
-          }} />
+            border: `4px solid ${styles.colors.primary}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            {!profileImageUrl && (
+              <span style={{
+                fontSize: 48,
+                color: styles.colors.gray400,
+                fontFamily: 'Material Symbols Outlined',
+              }}>person</span>
+            )}
+          </div>
           <div style={{
             position: 'absolute',
             bottom: -4,
@@ -113,15 +234,248 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
             Together Since
           </p>
           <p style={{ fontSize: 18, fontWeight: 700, color: styles.colors.primary, margin: '4px 0' }}>
-            Oct 12, 2023
+            {TOGETHER_SINCE.format('YYYY년 M월 D일')}
+          </p>
+          <p style={{
+            fontSize: 28,
+            fontWeight: 800,
+            color: styles.colors.primary,
+            margin: '8px 0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 4,
+          }}>
+            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24 }}>favorite</span>
+            D+{daysTogether}
           </p>
           <p style={{ fontSize: 14, color: styles.colors.textMuted, margin: 0 }}>
-            {items.length} memories shared & counting
+            {items.length}개의 추억을 함께 만들었어요
           </p>
         </div>
       </div>
 
+      {/* 검색 영역 */}
+      <div style={{ padding: '0 16px 16px' }}>
+        {/* 검색바 */}
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 12,
+        }}>
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: '10px 14px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            border: `1px solid ${styles.colors.gray100}`,
+          }}>
+            <span style={{
+              fontFamily: 'Material Symbols Outlined',
+              fontSize: 20,
+              color: styles.colors.gray400,
+              marginRight: 10,
+            }}>search</span>
+            <input
+              type="text"
+              value={searchKeyword}
+              onChange={(e) => setSearchKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && executeSearch()}
+              placeholder="추억 검색..."
+              style={{
+                flex: 1,
+                border: 'none',
+                outline: 'none',
+                fontSize: 15,
+                color: styles.colors.textDark,
+                backgroundColor: 'transparent',
+              }}
+            />
+            {isSearchMode && (
+              <button
+                onClick={clearSearch}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 4,
+                  cursor: 'pointer',
+                  display: 'flex',
+                }}
+              >
+                <span style={{
+                  fontFamily: 'Material Symbols Outlined',
+                  fontSize: 18,
+                  color: styles.colors.gray400,
+                }}>close</span>
+              </button>
+            )}
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            style={{
+              padding: '10px 14px',
+              borderRadius: 12,
+              border: `1px solid ${showFilters || selectedCategory || startDate || endDate ? styles.colors.primary : styles.colors.gray100}`,
+              backgroundColor: showFilters || selectedCategory || startDate || endDate ? `${styles.colors.primary}15` : 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            }}
+          >
+            <span style={{
+              fontFamily: 'Material Symbols Outlined',
+              fontSize: 20,
+              color: showFilters || selectedCategory || startDate || endDate ? styles.colors.primary : styles.colors.gray400,
+            }}>tune</span>
+          </button>
+          <button
+            onClick={() => executeSearch()}
+            style={{
+              padding: '10px 16px',
+              borderRadius: 12,
+              border: 'none',
+              backgroundColor: styles.colors.primary,
+              color: 'white',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 14,
+              boxShadow: '0 2px 8px rgba(255,180,168,0.4)',
+            }}
+          >
+            검색
+          </button>
+        </div>
+
+        {/* 필터 영역 */}
+        {showFilters && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: 12,
+            padding: 16,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+            border: `1px solid ${styles.colors.gray100}`,
+            marginBottom: 12,
+          }}>
+            {/* 카테고리 */}
+            <div style={{ marginBottom: 16 }}>
+              <p style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: styles.colors.textMuted,
+                marginBottom: 8,
+                textTransform: 'uppercase',
+              }}>카테고리</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setSelectedCategory(cat.value)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      border: selectedCategory === cat.value ? 'none' : `1px solid ${styles.colors.gray100}`,
+                      backgroundColor: selectedCategory === cat.value ? styles.colors.primary : 'white',
+                      color: selectedCategory === cat.value ? 'white' : styles.colors.textDark,
+                      fontSize: 13,
+                      fontWeight: 500,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {cat.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 날짜 범위 */}
+            <div>
+              <p style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: styles.colors.textMuted,
+                marginBottom: 8,
+                textTransform: 'uppercase',
+              }}>날짜 범위</p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${styles.colors.gray100}`,
+                    fontSize: 14,
+                    color: styles.colors.textDark,
+                  }}
+                />
+                <span style={{ color: styles.colors.gray400 }}>~</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1px solid ${styles.colors.gray100}`,
+                    fontSize: 14,
+                    color: styles.colors.textDark,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 검색 결과 상태 표시 */}
+        {isSearchMode && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 8,
+          }}>
+            <p style={{
+              fontSize: 13,
+              color: styles.colors.textMuted,
+              margin: 0,
+            }}>
+              {searchLoading ? '검색 중...' : `${searchResults.length}개의 결과`}
+            </p>
+            <button
+              onClick={clearSearch}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: styles.colors.primary,
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              초기화
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Timeline */}
+      {(() => {
+        const displayItems = isSearchMode ? searchResults : items;
+        const isLoading = isSearchMode ? searchLoading : loading;
+        const displayHasNext = isSearchMode ? searchHasNext : hasNext;
+        const displayLoadMore = isSearchMode ? loadMoreSearch : onLoadMore;
+        const displayLoadingMore = isSearchMode ? searchLoading && searchResults.length > 0 : loadingMore;
+
+        return (
       <div style={{ position: 'relative', padding: '0 16px' }}>
         {/* Timeline line */}
         <div style={{
@@ -134,7 +488,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
           zIndex: 0,
         }} />
 
-        {loading ? (
+        {isLoading && displayItems.length === 0 ? (
           <div style={{
             display: 'flex',
             justifyContent: 'center',
@@ -148,18 +502,18 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
               animation: 'spin 1s linear infinite',
             }}>progress_activity</span>
           </div>
-        ) : items.length === 0 ? (
+        ) : displayItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: 48, color: styles.colors.textMuted }}>
             <span style={{
               fontSize: 48,
               fontFamily: 'Material Symbols Outlined',
               display: 'block',
               marginBottom: 16,
-            }}>photo_library</span>
-            <p>No memories yet. Create your first one!</p>
+            }}>{isSearchMode ? 'search_off' : 'photo_library'}</span>
+            <p>{isSearchMode ? '검색 결과가 없습니다' : 'No memories yet. Create your first one!'}</p>
           </div>
         ) : (
-          items.map((item, index) => (
+          displayItems.map((item, index) => (
             <div
               key={item.id}
               onClick={() => onItemClick(item.id)}
@@ -291,16 +645,16 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
             }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 48 }}>
-            {loadingMore ? (
+            {displayLoadingMore ? (
               <span style={{
                 fontSize: 24,
                 color: styles.colors.primary,
                 fontFamily: 'Material Symbols Outlined',
                 animation: 'spin 1s linear infinite',
               }}>progress_activity</span>
-            ) : hasNext ? (
+            ) : displayHasNext ? (
               <button
-                onClick={(e) => { e.stopPropagation(); onLoadMore(); }}
+                onClick={(e) => { e.stopPropagation(); displayLoadMore(); }}
                 style={{
                   background: 'none',
                   border: 'none',
@@ -318,7 +672,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
                 View older memories
                 <span style={{ fontSize: 12, fontFamily: 'Material Symbols Outlined' }}>expand_more</span>
               </button>
-            ) : items.length > 0 ? (
+            ) : displayItems.length > 0 ? (
               <p style={{ color: styles.colors.gray400, fontSize: 12, margin: 0 }}>
                 No more memories
               </p>
@@ -326,6 +680,8 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
           </div>
         </div>
       </div>
+        );
+      })()}
 
       <style>{`
         @keyframes spin {

@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import type { ReactNode, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/userAuthStore';
 
@@ -14,7 +14,7 @@ const styles = {
   fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
-export type TabType = 'feed' | 'timeline' | 'calendar';
+export type TabType = 'timeline' | 'calendar';
 
 interface LayoutProps {
   children: ReactNode;
@@ -24,9 +24,10 @@ interface LayoutProps {
   profileImageUrl?: string;
   onProfileClick: () => void;
   userName?: string;
+  onLogoClick?: () => void;
 }
 
-const Layout: React.FC<LayoutProps> = ({
+const Layout: FC<LayoutProps> = ({
   children,
   activeTab,
   onTabChange,
@@ -34,6 +35,7 @@ const Layout: React.FC<LayoutProps> = ({
   profileImageUrl,
   onProfileClick,
   userName,
+  onLogoClick,
 }) => {
   const { logout } = useAuthStore();
   const navigate = useNavigate();
@@ -68,9 +70,14 @@ const Layout: React.FC<LayoutProps> = ({
           maxWidth: 448,
           margin: '0 auto',
         }}>
-          {/* 왼쪽: 무사해 로고 */}
           <h1
-            onClick={() => navigate('/home')}
+            onClick={() => {
+              if (onLogoClick) {
+                onLogoClick();
+              } else {
+                navigate('/home');
+              }
+            }}
             style={{
               fontSize: 24,
               fontWeight: 800,
@@ -83,7 +90,6 @@ const Layout: React.FC<LayoutProps> = ({
             MUSAHAE
           </h1>
 
-          {/* 오른쪽: 프로필사진 + 이름 + 로그아웃 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div
               onClick={onProfileClick}
@@ -145,7 +151,7 @@ const Layout: React.FC<LayoutProps> = ({
         </div>
       </header>
 
-      {/* Main Content - with padding for fixed header/footer */}
+      {/* Main Content */}
       <main style={{
         maxWidth: 448,
         margin: '0 auto',
@@ -166,94 +172,16 @@ const Layout: React.FC<LayoutProps> = ({
         backdropFilter: 'blur(20px)',
         borderTop: `1px solid ${styles.colors.gray100}`,
         padding: '12px 24px',
+        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
         zIndex: 50,
       }}>
         <div style={{
           maxWidth: 448,
           margin: '0 auto',
           display: 'flex',
-          justifyContent: 'space-between',
+          justifyContent: 'space-around',
           alignItems: 'center',
         }}>
-          {/* Feed Tab */}
-          <button
-            onClick={() => onTabChange('feed')}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-            }}
-          >
-            <span style={{
-              fontSize: 24,
-              color: activeTab === 'feed' ? styles.colors.primary : styles.colors.gray400,
-              fontFamily: 'Material Symbols Outlined',
-              fontVariationSettings: activeTab === 'feed' ? "'FILL' 1" : "'FILL' 0",
-            }}>grid_view</span>
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: activeTab === 'feed' ? styles.colors.primary : styles.colors.gray400,
-            }}>Feed</span>
-          </button>
-
-          {/* Timeline Tab */}
-          <button
-            onClick={() => onTabChange('timeline')}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-            }}
-          >
-            <span style={{
-              fontSize: 24,
-              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
-              fontFamily: 'Material Symbols Outlined',
-              fontVariationSettings: activeTab === 'timeline' ? "'FILL' 1" : "'FILL' 0",
-            }}>auto_awesome_motion</span>
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
-            }}>Timeline</span>
-          </button>
-
-          {/* Add Button */}
-          <div style={{ position: 'relative', top: -24 }}>
-            <button
-              onClick={onAddClick}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                backgroundColor: styles.colors.primary,
-                color: 'white',
-                border: '4px solid white',
-                boxShadow: `0 8px 24px ${styles.colors.primary}50`,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'transform 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <span style={{ fontSize: 30, fontFamily: 'Material Symbols Outlined' }}>add</span>
-            </button>
-          </div>
-
           {/* Calendar Tab */}
           <button
             onClick={() => onTabChange('calendar')}
@@ -281,8 +209,34 @@ const Layout: React.FC<LayoutProps> = ({
             }}>Calendar</span>
           </button>
 
-          {/* Settings Tab */}
+          {/* Add Button */}
+          <div style={{ position: 'relative', top: -24 }}>
+            <button
+              onClick={onAddClick}
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: '50%',
+                backgroundColor: styles.colors.primary,
+                color: 'white',
+                border: '4px solid white',
+                boxShadow: `0 8px 24px ${styles.colors.primary}50`,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.2s',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            >
+              <span style={{ fontSize: 30, fontFamily: 'Material Symbols Outlined' }}>add</span>
+            </button>
+          </div>
+
+          {/* Timeline Tab */}
           <button
+            onClick={() => onTabChange('timeline')}
             style={{
               display: 'flex',
               flexDirection: 'column',
@@ -296,14 +250,15 @@ const Layout: React.FC<LayoutProps> = ({
           >
             <span style={{
               fontSize: 24,
-              color: styles.colors.gray400,
+              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
               fontFamily: 'Material Symbols Outlined',
-            }}>settings</span>
+              fontVariationSettings: activeTab === 'timeline' ? "'FILL' 1" : "'FILL' 0",
+            }}>auto_awesome_motion</span>
             <span style={{
               fontSize: 10,
               fontWeight: 700,
-              color: styles.colors.gray400,
-            }}>Settings</span>
+              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
+            }}>Timeline</span>
           </button>
         </div>
       </nav>

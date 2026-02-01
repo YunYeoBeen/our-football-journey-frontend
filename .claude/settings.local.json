@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/tommy/IdeaProjects/react-app-backend/src/main/kotlin/com/example/reactappbackend/domains/match/dto/**)",
+      "Read(//c/Users/tommy/IdeaProjects/react-app-backend/src/main/kotlin/com/example/reactappbackend/domains/user/**)",
+      "Read(//c/Users/tommy/IdeaProjects/react-app-backend/src/main/kotlin/com/example/reactappbackend/domains/match/**)",
+      "Bash(./gradlew kaptKotlin:*)",
+      "Bash(./gradlew build:*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}

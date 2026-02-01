@@ -39,6 +39,15 @@ export interface BoardListResponse {
   hasNext: boolean;
 }
 
+export interface BoardSearchParams {
+  keyword?: string;
+  category?: string;
+  startDate?: string;  // YYYY-MM-DD
+  endDate?: string;    // YYYY-MM-DD
+  page?: number;
+  size?: number;
+}
+
 // 게시물 상세 조회 응답
 export interface BoardDetailResponse {
   id: number;
@@ -183,6 +192,33 @@ export const boardApi = {
 
     if (!response.ok) {
       throw new Error('게시물 삭제에 실패했습니다.');
+    }
+
+    return response.json();
+  },
+
+  // 게시물 검색
+  async search(params: BoardSearchParams): Promise<BoardListResponse> {
+    const token = localStorage.getItem('accessToken');
+    const queryParams = new URLSearchParams();
+
+    if (params.keyword) queryParams.append('keyword', params.keyword);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+    queryParams.append('page', String(params.page ?? 0));
+    queryParams.append('size', String(params.size ?? 10));
+
+    const response = await fetch(`${API_BASE_URL}/search?${queryParams.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('검색에 실패했습니다.');
     }
 
     return response.json();

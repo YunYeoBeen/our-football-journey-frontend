@@ -9,27 +9,35 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     console.log('OAuthCallback mounted');
-  
+
     const params = new URLSearchParams(window.location.search);
     const token = params.get('token');
-  
+    const error = params.get('error');
+
+    // 허용되지 않은 사용자 체크
+    if (error === 'unauthorized') {
+      alert('접근이 허용되지 않은 사용자입니다.\n관리자에게 문의해주세요.');
+      navigate('/');
+      return;
+    }
+
     console.log('token =', token);
-  
+
     if (!token) {
       alert('토큰이 없습니다. 로그인 실패');
       navigate('/');
       return;
     }
-  
+
     try {
       const decoded = jwtDecode<{ name: string; email: string }>(token);
       console.log('decoded:', decoded);
-      
+
       login(token, {
         name: decoded.name,
         email: decoded.email
       });
-      
+
       navigate('/home');
     } catch (err) {
       console.error('JWT decode 실패', err);

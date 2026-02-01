@@ -9,7 +9,7 @@ export interface Memory {
   title: string;
   location: string;
   place?: string; // 서버 API와의 호환성
-  category: '데이트' | '기념일' | '여행' | '일상';
+  category: '데이트' | '여행' | '맛집' | '축구';
   content: string;
   images: string[];
   imageUrl?: string[]; // 서버 API와의 호환성
@@ -21,15 +21,15 @@ export interface Memory {
 export const CategoryMap = {
   toServer: {
     '데이트': 'DATE',
-    '기념일': 'DATE',  // 서버에 ANNIVERSARY가 없으면 DATE로 매핑
     '여행': 'TRAVEL',
-    '일상': 'FOOD'     // 서버에 DAILY가 없으면 FOOD로 매핑
+    '맛집': 'FOOD',
+    '축구': 'FOOTBALL'
   } as Record<string, string>,
   toClient: {
     'DATE': '데이트',
     'TRAVEL': '여행',
-    'FOOD': '일상',
-    'FOOTBALL': '일상'
+    'FOOD': '맛집',
+    'FOOTBALL': '축구'
   } as Record<string, string>
 };
 

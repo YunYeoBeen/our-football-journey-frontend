@@ -30,6 +30,7 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={user ? <Navigate to="/home" /> : <LoginPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/home" element={user ? <HomePage /> : <Navigate to="/" />} />
         <Route path="/main" element={<Navigate to="/home" />} />

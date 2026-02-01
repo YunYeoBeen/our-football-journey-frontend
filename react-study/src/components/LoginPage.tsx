@@ -1,4 +1,4 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 import GoogleLoginButton from './GoogleLoginButton';
 
 // 공통 스타일
@@ -17,6 +17,19 @@ const styles = {
 };
 
 export default function LoginPage() {
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // 허용되지 않은 사용자 체크
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get('error');
+
+    if (error === 'unauthorized') {
+      setShowErrorModal(true);
+      // URL에서 error 파라미터 제거
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
   return (
     <div
       style={{
@@ -249,6 +262,112 @@ export default function LoginPage() {
           }}
         />
       </div>
+
+      {/* 접근 불가 모달 */}
+      {showErrorModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px',
+          }}
+          onClick={() => setShowErrorModal(false)}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              padding: '32px 24px',
+              maxWidth: '320px',
+              width: '100%',
+              textAlign: 'center',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
+              animation: 'modalFadeIn 0.3s ease',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 아이콘 */}
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: `${styles.colors.primary}20`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+              }}
+            >
+              <span style={{ fontSize: '32px' }}>🔒</span>
+            </div>
+
+            {/* 제목 */}
+            <h2
+              style={{
+                fontSize: '20px',
+                fontWeight: 700,
+                color: styles.colors.textDark,
+                margin: '0 0 12px 0',
+                fontFamily: styles.fontFamily,
+              }}
+            >
+              접근이 제한되었습니다
+            </h2>
+
+            {/* 설명 */}
+            <p
+              style={{
+                fontSize: '14px',
+                color: styles.colors.textMuted,
+                margin: '0 0 24px 0',
+                lineHeight: 1.6,
+                fontFamily: styles.fontFamily,
+              }}
+            >
+              현재 허용된 사용자만 이용할 수 있습니다.
+              <br />
+              관리자에게 문의해주세요.
+            </p>
+
+            {/* 확인 버튼 */}
+            <button
+              onClick={() => setShowErrorModal(false)}
+              style={{
+                width: '100%',
+                padding: '14px 24px',
+                backgroundColor: styles.colors.primary,
+                color: 'white',
+                border: 'none',
+                borderRadius: '12px',
+                fontSize: '15px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: styles.fontFamily,
+                transition: 'transform 0.2s, box-shadow 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.02)';
+                e.currentTarget.style.boxShadow = `0 8px 24px ${styles.colors.primary}50`;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              확인
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
