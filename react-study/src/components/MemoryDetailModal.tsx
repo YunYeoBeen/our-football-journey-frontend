@@ -3,7 +3,6 @@ import { message } from 'antd';
 import { boardApi } from '../services/boardApi';
 import type { BoardDetailResponse } from '../services/boardApi';
 import { s3Api } from '../services/s3Api';
-import { CategoryMap, WeatherMap } from '../types';
 
 const styles = {
   colors: {
@@ -164,7 +163,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
     }
   };
 
-  const handleRemoveExistingImage = (imageKey: string, index: number) => {
+  const handleRemoveExistingImage = (imageKey: string) => {
     setDeletedImageKeys(prev => [...prev, imageKey]);
   };
 
@@ -300,7 +299,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                           onClick={() => {
                             const img = displayImages[currentImageIndex];
                             if (img.type === 'existing') {
-                              handleRemoveExistingImage(img.key, currentImageIndex);
+                              handleRemoveExistingImage(img.key);
                             } else {
                               handleRemoveNewImage(img.idx);
                             }

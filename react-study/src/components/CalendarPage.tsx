@@ -1,7 +1,7 @@
 // ==========================================
 // pages/CalendarPage.tsx - 달력 페이지 (기존 코드)
 // ==========================================
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, Button, Modal, Calendar, Badge, Input, Space, message } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';

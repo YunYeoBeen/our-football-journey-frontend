@@ -6,7 +6,9 @@
       "Read(//c/Users/tommy/IdeaProjects/react-app-backend/src/main/kotlin/com/example/reactappbackend/domains/match/**)",
       "Bash(./gradlew kaptKotlin:*)",
       "Bash(./gradlew build:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(react-study/node_modules/.bin/vite build:*)"
     ]
   }
 }

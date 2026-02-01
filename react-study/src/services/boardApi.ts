@@ -1,6 +1,6 @@
 import { CategoryMap, WeatherMap } from '../types';
 
-const API_BASE_URL = 'http://localhost:8080/api/v1/board';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/board`;
 
 export interface BoardCreateRequest {
   date: string;
@@ -32,6 +32,12 @@ export interface BoardListItem {
   title: string;
   thumbnail: string | null;  // S3 key (presigned URL 발급 필요)
   date: string;
+  place?: string;
+  category?: string;
+  content?: string;
+  imageUrl?: string;
+  mood?: number;
+  weather?: string;
 }
 
 export interface BoardListResponse {
