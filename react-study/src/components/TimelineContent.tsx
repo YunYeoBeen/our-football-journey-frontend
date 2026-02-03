@@ -432,25 +432,29 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
                   onChange={(e) => setStartDate(e.target.value)}
                   style={{
                     flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: 8,
+                    padding: '12px 14px',
+                    borderRadius: 10,
                     border: `1px solid ${styles.colors.gray100}`,
                     fontSize: 14,
                     color: styles.colors.textDark,
+                    backgroundColor: styles.colors.gray50,
+                    minWidth: 0,
                   }}
                 />
-                <span style={{ color: styles.colors.gray400 }}>~</span>
+                <span style={{ color: styles.colors.gray400, flexShrink: 0 }}>~</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   style={{
                     flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: 8,
+                    padding: '12px 14px',
+                    borderRadius: 10,
                     border: `1px solid ${styles.colors.gray100}`,
                     fontSize: 14,
                     color: styles.colors.textDark,
+                    backgroundColor: styles.colors.gray50,
+                    minWidth: 0,
                   }}
                 />
               </div>
@@ -499,11 +503,11 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
         const displayLoadingMore = isSearchMode ? searchLoading && searchResults.length > 0 : loadingMore;
 
         return (
-      <div style={{ position: 'relative', padding: '0 16px' }}>
+      <div style={{ position: 'relative', paddingLeft: 16, paddingRight: 16 }}>
         {/* Timeline line */}
         <div style={{
           position: 'absolute',
-          left: 43,
+          left: 36,
           top: 0,
           bottom: 0,
           width: 2,

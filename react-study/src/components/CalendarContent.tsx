@@ -150,9 +150,11 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     if ((calendarHeight ?? monthHeight) < threshold) {
       setCalendarHeight(weekHeight);
       setViewMode('week');
+      console.log('[viewMode] switched to week');
     } else {
       setCalendarHeight(monthHeight);
       setViewMode('month');
+      console.log('[viewMode] switched to month');
     }
   }, [isDragging, calendarHeight, monthHeight]);
 
@@ -368,6 +370,34 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       })
       .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, selectedDate]);
+
+  // Events for the current week (week view)
+  const weekEvents = useMemo(() => {
+    const currentWeek = calendarWeeks[activeWeekIndex];
+    console.log('[weekEvents] activeWeekIndex:', activeWeekIndex, 'currentWeek:', currentWeek);
+    if (!currentWeek) return [];
+
+    const weekDays = currentWeek.filter((day): day is dayjs.Dayjs => day !== null);
+    if (weekDays.length === 0) return [];
+
+    const weekStart = weekDays[0];
+    const weekEnd = weekDays[weekDays.length - 1];
+    console.log('[weekEvents] weekStart:', weekStart.format('YYYY-MM-DD'), 'weekEnd:', weekEnd.format('YYYY-MM-DD'));
+    console.log('[weekEvents] calendarEvents count:', calendarEvents.length);
+
+    const filtered = calendarEvents
+      .filter(e => {
+        const eventStart = dayjs(e.startDate);
+        const eventEnd = e.endDate ? dayjs(e.endDate) : eventStart;
+        // Event overlaps with week if: eventStart <= weekEnd AND eventEnd >= weekStart
+        return (eventStart.isBefore(weekEnd, 'day') || eventStart.isSame(weekEnd, 'day')) &&
+               (eventEnd.isAfter(weekStart, 'day') || eventEnd.isSame(weekStart, 'day'));
+      })
+      .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
+
+    console.log('[weekEvents] filtered count:', filtered.length, filtered);
+    return filtered;
+  }, [calendarEvents, calendarWeeks, activeWeekIndex]);
 
   // Events list for month view (all or filtered)
   const sortedEvents = useMemo(() => {
@@ -935,25 +965,73 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         </div>
       )}
 
-      {/* Week View: Detail Panel */}
-      {viewMode === 'week' && selectedDate && selectedDayEvents.length > 0 && (
+      {/* Week View: Events Panel */}
+      {(() => { console.log('[RENDER] viewMode:', viewMode, 'weekEvents.length:', weekEvents.length); return null; })()}
+      {viewMode === 'week' && (
         <div style={{
           marginTop: 8,
           animation: 'slideUp 0.2s ease',
         }}>
-          <h3 style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: colors.textMuted,
-            margin: '0 0 8px 0',
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
+            justifyContent: 'space-between',
+            marginBottom: 8,
           }}>
-            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>event</span>
-            {dayjs(selectedDate).format('M월 D일 (ddd)')}
-          </h3>
-          {selectedDayEvents.map((event, idx) => renderEventCard(event, idx))}
+            <h3 style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: colors.textMuted,
+              margin: 0,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}>
+              <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>event</span>
+              {selectedDate
+                ? dayjs(selectedDate).format('M월 D일 (ddd)') + ' 일정'
+                : (() => {
+                    const week = calendarWeeks[activeWeekIndex];
+                    const firstDay = week?.find(d => d !== null);
+                    const lastDay = [...(week || [])].reverse().find(d => d !== null);
+                    if (firstDay && lastDay) {
+                      return `${firstDay.format('M/D')} - ${lastDay.format('M/D')} 일정`;
+                    }
+                    return '이번 주 일정';
+                  })()}
+            </h3>
+            {selectedDate && (
+              <button
+                onClick={() => { setSelectedDate(null); onDateSelect?.(null); }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: colors.ulsanBlue,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                전체 보기
+                <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>close</span>
+              </button>
+            )}
+          </div>
+          {(selectedDate ? selectedDayEvents : weekEvents).length === 0 ? (
+            <p style={{
+              textAlign: 'center',
+              color: colors.gray400,
+              fontSize: 14,
+              padding: 24,
+            }}>
+              {selectedDate ? '이 날 일정이 없습니다' : '이번 주 일정이 없습니다'}
+            </p>
+          ) : (
+            (selectedDate ? selectedDayEvents : weekEvents).map((event, idx) => renderEventCard(event, idx))
+          )}
         </div>
       )}
 
@@ -1013,18 +1091,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
           ) : (
             sortedEvents.map((event, idx) => renderEventCard(event, idx))
           )}
-        </div>
-      )}
-
-      {/* Week View: No date selected hint */}
-      {viewMode === 'week' && !selectedDate && (
-        <div style={{
-          textAlign: 'center',
-          padding: 24,
-          color: colors.gray400,
-          fontSize: 13,
-        }}>
-          날짜를 선택하면 일정을 볼 수 있습니다
         </div>
       )}
 
