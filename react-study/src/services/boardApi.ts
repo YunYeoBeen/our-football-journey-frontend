@@ -4,11 +4,10 @@ const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/board`;
 
 export interface BoardCreateRequest {
   startDate: string;
-  endDate?: string;
+  endDate: string;
   title: string;
   place: string;
   category: string;
-  mood: number;
   content: string;
   imageKeys: string[];  // S3 이미지 키 배열
   weather: string;
@@ -21,7 +20,6 @@ export interface BoardResponse {
   title: string;
   place: string;
   category: string;
-  mood: number;
   content: string;
   imageUrl: string;  // 썸네일 URL (단일 문자열)
   weather: string;
@@ -39,7 +37,6 @@ export interface BoardListItem {
   category?: string;
   content?: string;
   imageUrl?: string;
-  mood?: number;
   weather?: string;
 }
 
@@ -65,7 +62,6 @@ export interface BoardDetailResponse {
   title: string;
   place: string;
   category: string;
-  mood: number;
   content: string;
   images: string[];  // 상세 조회 시 이미지 key 배열
   weather: string;
@@ -79,7 +75,6 @@ export interface BoardUpdateRequest {
   startDate?: string;
   endDate?: string;
   content?: string;
-  mood?: number;
   weather?: string;
   place?: string;
   category?: string;
@@ -115,7 +110,9 @@ export const boardApi = {
     });
 
     if (!response.ok) {
-      throw new Error('게시물 생성에 실패했습니다.');
+      const errorText = await response.text();
+      console.error('API Error:', response.status, errorText);
+      throw new Error(`게시물 생성 실패: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();

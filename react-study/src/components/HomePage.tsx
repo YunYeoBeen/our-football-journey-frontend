@@ -58,7 +58,7 @@ const HomePage: React.FC = () => {
           setProfileImageKey(profile.imageKey);
           localStorage.setItem('profileImageKey', profile.imageKey);
         }
-      } catch (error) {
+      } catch {
         const savedProfileKey = localStorage.getItem('profileImageKey');
         if (savedProfileKey) {
           setProfileImageKey(savedProfileKey);
@@ -98,7 +98,7 @@ const HomePage: React.FC = () => {
       const itemsWithKeys = response.content.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
       );
-      let urlMap: Record<string, string> = {};
+      const urlMap: Record<string, string> = {};
 
       if (itemsWithKeys.length > 0) {
         const keysToFetch = itemsWithKeys

@@ -21,6 +21,14 @@ export default function ImageViewer({ images, initialIndex, visible, onClose }: 
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
+  const handlePrevious = () => {
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  };
+
   useEffect(() => {
     if (!visible) return;
 
@@ -36,15 +44,7 @@ export default function ImageViewer({ images, initialIndex, visible, onClose }: 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [visible, currentIndex]);
-
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
-
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  }, [visible, onClose, images.length]);
 
   if (!visible) return null;
 

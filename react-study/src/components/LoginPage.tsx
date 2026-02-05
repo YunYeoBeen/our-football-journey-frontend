@@ -2,21 +2,6 @@ import { useEffect, useState } from 'react';
 import GoogleLoginButton from './GoogleLoginButton';
 import { s3Api } from '../services/s3Api';
 
-// 공통 스타일
-const styles = {
-  // 색상
-  colors: {
-    primary: '#ffb4a8',
-    backgroundLight: '#fdfcfc',
-    textDark: '#333333',
-    textMuted: '#666666',
-    textLight: '#999999',
-    border: '#F3F3F3',
-  },
-  // 폰트
-  fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-};
-
 export default function LoginPage() {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [mainImages, setMainImages] = useState<string[]>([]);
@@ -41,16 +26,15 @@ export default function LoginPage() {
 
     if (error === 'unauthorized') {
       setShowErrorModal(true);
-      // URL에서 error 파라미터 제거
       window.history.replaceState({}, '', '/');
     }
   }, []);
+
   return (
     <div
       style={{
         minHeight: '100vh',
-        backgroundColor: styles.colors.backgroundLight,
-        fontFamily: styles.fontFamily,
+        backgroundColor: 'var(--color-off-white)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -64,50 +48,57 @@ export default function LoginPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '24px',
-          paddingBottom: '80px',
+          padding: '32px',
         }}
       >
-        {/* Branding Section */}
+        {/* Logo Section */}
         <div
           style={{
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            marginBottom: '48px',
+            marginBottom: '64px',
           }}
         >
-          {/* Decorative Icon */}
+          {/* M + Heart Logo */}
           <div
             style={{
+              position: 'relative',
               marginBottom: '24px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '48px',
-              height: '48px',
-              borderRadius: '50%',
-              backgroundColor: `${styles.colors.primary}33`,
             }}
           >
             <span
               style={{
-                fontSize: '24px',
-                color: styles.colors.primary,
+                fontSize: '64px',
+                fontWeight: 300,
+                letterSpacing: '-0.05em',
+                color: 'var(--color-brand-gray)',
+                lineHeight: 1,
               }}
             >
-              ❤️
+              M
+            </span>
+            <span
+              className="material-symbols-outlined"
+              style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-12px',
+                fontSize: '28px',
+                color: 'var(--color-primary)',
+              }}
+            >
+              favorite
             </span>
           </div>
 
-          {/* Logo */}
+          {/* Brand Name */}
           <h1
             style={{
-              color: styles.colors.textDark,
-              letterSpacing: '0.15em',
-              fontSize: '42px',
-              fontWeight: 800,
-              lineHeight: 1.2,
+              color: 'var(--color-brand-gray)',
+              letterSpacing: '0.25em',
+              fontSize: '20px',
+              fontWeight: 500,
               textAlign: 'center',
               textTransform: 'uppercase',
               margin: 0,
@@ -115,30 +106,10 @@ export default function LoginPage() {
           >
             Musahae
           </h1>
-
-          {/* Sub-caption */}
-          <p
-            style={{
-              color: styles.colors.textMuted,
-              fontSize: '16px',
-              fontWeight: 500,
-              lineHeight: 1.5,
-              paddingTop: '8px',
-              textAlign: 'center',
-              margin: 0,
-            }}
-          >
-            Our shared journey starts here
-          </p>
         </div>
 
-        {/* Login Section */}
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '340px',
-          }}
-        >
+        {/* Login Button */}
+        <div style={{ width: '100%', maxWidth: '280px' }}>
           <GoogleLoginButton />
         </div>
 
@@ -148,7 +119,7 @@ export default function LoginPage() {
             style={{
               marginTop: '64px',
               width: '100%',
-              maxWidth: '384px',
+              maxWidth: '320px',
             }}
           >
             <div
@@ -188,69 +159,12 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* Footer */}
-      <div
-        style={{
-          padding: '32px',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-        }}
-      >
-        <div style={{ display: 'flex', gap: '24px' }}>
-          <a
-            href="#"
-            style={{
-              color: styles.colors.textMuted,
-              fontSize: '12px',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Terms
-          </a>
-          <a
-            href="#"
-            style={{
-              color: styles.colors.textMuted,
-              fontSize: '12px',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Privacy
-          </a>
-          <a
-            href="#"
-            style={{
-              color: styles.colors.textMuted,
-              fontSize: '12px',
-              fontWeight: 500,
-              textDecoration: 'none',
-            }}
-          >
-            Help
-          </a>
-        </div>
-        <span
-          style={{
-            color: styles.colors.textLight,
-            fontSize: '10px',
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-          }}
-        >
-          Version 1.0.4
-        </span>
-      </div>
-
       {/* iOS Home Indicator */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'center',
-          paddingBottom: '8px',
+          paddingBottom: '12px',
         }}
       >
         <div
@@ -290,17 +204,15 @@ export default function LoginPage() {
               width: '100%',
               textAlign: 'center',
               boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15)',
-              animation: 'modalFadeIn 0.3s ease',
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* 아이콘 */}
             <div
               style={{
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                backgroundColor: `${styles.colors.primary}20`,
+                backgroundColor: 'rgba(255, 113, 154, 0.1)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -310,27 +222,23 @@ export default function LoginPage() {
               <span style={{ fontSize: '32px' }}>🔒</span>
             </div>
 
-            {/* 제목 */}
             <h2
               style={{
                 fontSize: '20px',
                 fontWeight: 700,
-                color: styles.colors.textDark,
+                color: 'var(--color-brand-gray)',
                 margin: '0 0 12px 0',
-                fontFamily: styles.fontFamily,
               }}
             >
               접근이 제한되었습니다
             </h2>
 
-            {/* 설명 */}
             <p
               style={{
                 fontSize: '14px',
-                color: styles.colors.textMuted,
+                color: '#666666',
                 margin: '0 0 24px 0',
                 lineHeight: 1.6,
-                fontFamily: styles.fontFamily,
               }}
             >
               현재 허용된 사용자만 이용할 수 있습니다.
@@ -338,29 +246,19 @@ export default function LoginPage() {
               관리자에게 문의해주세요.
             </p>
 
-            {/* 확인 버튼 */}
             <button
               onClick={() => setShowErrorModal(false)}
               style={{
                 width: '100%',
                 padding: '14px 24px',
-                backgroundColor: styles.colors.primary,
+                backgroundColor: 'var(--color-primary)',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '15px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontFamily: styles.fontFamily,
                 transition: 'transform 0.2s, box-shadow 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.02)';
-                e.currentTarget.style.boxShadow = `0 8px 24px ${styles.colors.primary}50`;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.boxShadow = 'none';
               }}
             >
               확인

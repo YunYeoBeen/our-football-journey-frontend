@@ -1,5 +1,5 @@
-import { Card, Tag, Rate, Space, Timeline } from 'antd';
-import { HeartOutlined, EnvironmentOutlined } from '@ant-design/icons';
+import { Card, Tag, Space, Timeline } from 'antd';
+import { EnvironmentOutlined } from '@ant-design/icons';
 import { useMemoryStore } from '../store/userMemoryStore';
 
 const categoryColors: { [key: string]: string } = {
@@ -25,7 +25,7 @@ export default function TimelineView() {
         mode="left"
         items={memories.map(memory => ({
           color: categoryColors[memory.category],
-          dot: <HeartOutlined style={{ fontSize: 20 }} />,
+          dot: <span style={{ fontSize: 16 }}>💕</span>,
           label: (
             <div style={{ fontWeight: 'bold', color: '#ff9a76' }}>
               {memory.startDate}
@@ -72,18 +72,8 @@ export default function TimelineView() {
                     <p style={{ color: '#666', lineHeight: 1.6, margin: '8px 0' }}>
                       {memory.content}
                     </p>
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginTop: 8
-                    }}>
+                    <div style={{ marginTop: 8 }}>
                       <span>{weatherEmoji[memory.weather]}</span>
-                      <Rate
-                        disabled
-                        value={memory.mood}
-                        character={<HeartOutlined />}
-                        style={{ fontSize: 14, color: '#ff9a76' }}
-                      />
                     </div>
                   </Space>
                 </div>

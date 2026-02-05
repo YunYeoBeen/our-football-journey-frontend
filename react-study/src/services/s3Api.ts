@@ -29,7 +29,7 @@ export const s3Api = {
   },
 
   // Presigned URL로 파일 업로드
-  async uploadToS3(uploadUrl: string, file: File): Promise<void> {
+  async uploadToS3(uploadUrl: string, file: File | Blob): Promise<void> {
     const response = await fetch(uploadUrl, {
       method: 'PUT',
       headers: {

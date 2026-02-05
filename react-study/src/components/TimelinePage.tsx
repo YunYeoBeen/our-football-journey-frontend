@@ -88,7 +88,7 @@ const TimelinePage: React.FC = () => {
       const itemsWithKeys = response.content.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
       );
-      let urlMap: Record<string, string> = {};
+      const urlMap: Record<string, string> = {};
 
       if (itemsWithKeys.length > 0) {
         const keysToFetch = itemsWithKeys
@@ -123,7 +123,7 @@ const TimelinePage: React.FC = () => {
 
       setHasNext(response.hasNext);
       setPage(pageNum);
-    } catch (error) {
+    } catch {
       // 게시물 조회 실패
     } finally {
       setLoading(false);

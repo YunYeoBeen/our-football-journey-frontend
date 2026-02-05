@@ -1,7 +1,15 @@
 import { useState, useRef } from 'react';
 import { message } from 'antd';
+import imageCompression from 'browser-image-compression';
 import { s3Api } from '../services/s3Api';
 import { userApi } from '../services/userApi';
+
+// 프로필 이미지 압축 옵션 (더 작게)
+const compressionOptions = {
+  maxSizeMB: 0.5,
+  maxWidthOrHeight: 800,
+  useWebWorker: true,
+};
 
 const styles = {
   colors: {
@@ -57,14 +65,24 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
 
     setIsUploading(true);
     try {
-      // 1. Presigned Upload URL 발급 (PROFILE 타입)
+      // 1. 이미지 압축
+      let fileToUpload: File | Blob = selectedFile;
+      try {
+        const compressed = await imageCompression(selectedFile, compressionOptions);
+        console.log(`프로필 압축: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+        fileToUpload = compressed;
+      } catch {
+        console.warn('압축 실패, 원본 사용');
+      }
+
+      // 2. Presigned Upload URL 발급 (PROFILE 타입)
       const presignedUrls = await s3Api.getPresignedUploadUrls([selectedFile.name], 'PROFILE');
 
       if (presignedUrls.length > 0) {
         const { uploadUrl, key } = presignedUrls[0];
 
-        // 2. S3에 파일 업로드
-        await s3Api.uploadToS3(uploadUrl, selectedFile);
+        // 3. S3에 압축된 파일 업로드
+        await s3Api.uploadToS3(uploadUrl, fileToUpload);
 
         // 3. 서버에 프로필 이미지 변경 요청
         await userApi.updateProfileImage(key);
@@ -73,7 +91,7 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
         onUpdated(key);
         handleClose();
       }
-    } catch (error) {
+    } catch {
       // 프로필 이미지 업로드 실패
       message.error('프로필 이미지 변경에 실패했습니다.');
     } finally {

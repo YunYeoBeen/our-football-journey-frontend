@@ -139,7 +139,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
         .filter(item => item.thumbnail)
         .map(item => item.thumbnail!);
 
-      let urlMap: Record<string, string> = {};
+      const urlMap: Record<string, string> = {};
       if (keysToFetch.length > 0) {
         const urls = await s3Api.getPresignedViewUrls(keysToFetch);
         keysToFetch.forEach((key, idx) => {
@@ -159,7 +159,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
       }
       setSearchHasNext(response.hasNext);
       setSearchPage(page);
-    } catch (error) {
+    } catch {
       // 검색 실패
     } finally {
       setSearchLoading(false);

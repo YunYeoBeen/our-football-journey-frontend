@@ -31,12 +31,11 @@ export default function MemoryPage() {
           category: (board.category as Memory['category']) ?? '축구',
           content: board.content ?? '',
           images: board.imageUrl ? [board.imageUrl] : ['https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400'],
-          mood: board.mood ?? 3,
           weather: (board.weather as Memory['weather']) ?? '맑음'
         }));
 
         setMemories(memories);
-      } catch (error) {
+      } catch {
         // 게시물 조회 실패
         message.error('추억을 불러오는데 실패했습니다.');
       } finally {

@@ -76,7 +76,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
     place: '',
     category: '',
     weather: '',
-    mood: 3,
     content: '',
   });
   const [newImages, setNewImages] = useState<File[]>([]);
@@ -107,7 +106,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         place: response.place,
         category: response.category,
         weather: response.weather,
-        mood: response.mood,
         content: response.content,
       });
       setDeletedImageKeys([]);
@@ -203,7 +201,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         place: editForm.place,
         category: editForm.category,
         weather: editForm.weather,
-        mood: editForm.mood,
         content: editForm.content,
         keepImageKeys,
         addImageFileNames,
@@ -645,39 +642,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                     </div>
                   </div>
 
-                  {/* Mood */}
-                  <div style={{ marginBottom: 16 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
-                      Mood
-                    </label>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => setEditForm(prev => ({ ...prev, mood: value }))}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            padding: 0,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 24,
-                              color: value <= editForm.mood ? styles.colors.primary : styles.colors.gray200,
-                              fontFamily: 'Material Symbols Outlined',
-                              fontVariationSettings: "'FILL' 1",
-                            }}
-                          >
-                            favorite
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
                   {/* Content */}
                   <div style={{ marginBottom: 16 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
@@ -715,7 +679,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                             place: detail.place,
                             category: detail.category,
                             weather: detail.weather,
-                            mood: detail.mood,
                             content: detail.content,
                           });
                         }
@@ -804,28 +767,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                     >
                       {weatherEmoji[detail.weather] || '🌤️'} {detail.weather}
                     </span>
-                  </div>
-
-                  {/* Mood */}
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4 }}>
-                      Mood
-                    </p>
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      {[1, 2, 3, 4, 5].map((value) => (
-                        <span
-                          key={value}
-                          style={{
-                            fontSize: 20,
-                            color: value <= detail.mood ? styles.colors.primary : styles.colors.gray200,
-                            fontFamily: 'Material Symbols Outlined',
-                            fontVariationSettings: "'FILL' 1",
-                          }}
-                        >
-                          favorite
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
                   {/* Content */}

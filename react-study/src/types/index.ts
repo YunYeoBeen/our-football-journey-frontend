@@ -10,11 +10,10 @@ export interface Memory {
   title: string;
   location: string;
   place?: string; // 서버 API와의 호환성
-  category: '데이트' | '여행' | '맛집' | '축구';
+  category: '데이트' | '여행' | '맛집' | '축구' | '일상';
   content: string;
   images: string[];
   imageUrl?: string[]; // 서버 API와의 호환성
-  mood: number;
   weather: '맑음' | '흐림' | '비' | '눈';
 }
 
@@ -24,13 +23,15 @@ export const CategoryMap = {
     '데이트': 'DATE',
     '여행': 'TRAVEL',
     '맛집': 'FOOD',
-    '축구': 'FOOTBALL'
+    '축구': 'FOOTBALL',
+    '일상': 'DAILY'
   } as Record<string, string>,
   toClient: {
     'DATE': '데이트',
     'TRAVEL': '여행',
     'FOOD': '맛집',
-    'FOOTBALL': '축구'
+    'FOOTBALL': '축구',
+    'DAILY': '일상'
   } as Record<string, string>
 };
 

@@ -19,7 +19,7 @@ function App() {
           name: decoded.name,
           email: decoded.email
         });
-      } catch (err) {
+      } catch {
         // 토큰 복구 실패
         localStorage.removeItem('accessToken');
       }

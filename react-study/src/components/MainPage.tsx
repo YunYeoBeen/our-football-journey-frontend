@@ -139,7 +139,7 @@ const MainPage: React.FC = () => {
       const response = await boardApi.getAllList(pageNum, 12);
 
       const itemsWithKeys = response.content.filter((item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null);
-      let urlMap: Record<string, string> = {};
+      const urlMap: Record<string, string> = {};
 
       if (itemsWithKeys.length > 0) {
         const keysToFetch = itemsWithKeys

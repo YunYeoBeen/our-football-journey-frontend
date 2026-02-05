@@ -1,10 +1,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import dayjs from 'dayjs';
+import imageCompression from 'browser-image-compression';
 import type { Memory } from '../types';
 import { CategoryMap, WeatherMap } from '../types';
 import { boardApi } from '../services/boardApi';
 import { s3Api } from '../services/s3Api';
+
+// 이미지 압축 옵션
+const compressionOptions = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+};
 
 // 공통 스타일
 const styles = {
@@ -51,8 +59,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
     content: '',
     startDate: dayjs().format('YYYY-MM-DD'),
     endDate: dayjs().format('YYYY-MM-DD'),
-    isSingleDay: true,
-    mood: 5,
+    isSingleDay: false,
     weather: '맑음' as Memory['weather']
   });
 
@@ -114,12 +121,26 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
     try {
       const imageKeys: string[] = [];
 
-      // S3 presigned URL로 이미지 업로드 (다중)
+      // S3 presigned URL로 이미지 업로드 (다중) - 압축 후 업로드
       if (selectedFiles.length > 0) {
+        // 이미지 압축
+        const compressedFiles = await Promise.all(
+          selectedFiles.map(async (file) => {
+            try {
+              const compressed = await imageCompression(file, compressionOptions);
+              console.log(`압축: ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+              return compressed;
+            } catch {
+              console.warn(`압축 실패, 원본 사용: ${file.name}`);
+              return file;
+            }
+          })
+        );
+
         const presignedUrls = await s3Api.getPresignedUploadUrls(selectedFiles.map(f => f.name));
 
         await Promise.all(presignedUrls.map(async ({ uploadUrl, key }, idx) => {
-          await s3Api.uploadToS3(uploadUrl, selectedFiles[idx]);
+          await s3Api.uploadToS3(uploadUrl, compressedFiles[idx]);
           imageKeys.push(key);
         }));
       }
@@ -132,11 +153,10 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
 
       const boardData = {
         startDate: `${formData.startDate}T00:00:00`,
-        endDate: formData.isSingleDay ? undefined : `${formData.endDate}T00:00:00`,
+        endDate: formData.isSingleDay ? `${formData.startDate}T00:00:00` : `${formData.endDate}T00:00:00`,
         title: formData.title || 'Untitled',
         place: formData.location || 'Unknown',
         category: CategoryMap.toServer[formData.category] || 'DATE',
-        mood: formData.mood,
         content: formData.content,
         imageKeys: imageKeys,
         weather: WeatherMap.toServer[formData.weather] || 'SUNNY'
@@ -148,6 +168,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
       await onCreated?.();
     } catch (error) {
       // 저장 실패
+      console.error('게시글 생성 실패:', error);
       message.error('Failed to save. Please try again.');
     } finally {
       setIsSubmitting(false);
@@ -162,8 +183,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
       content: '',
       startDate: dayjs().format('YYYY-MM-DD'),
       endDate: dayjs().format('YYYY-MM-DD'),
-      isSingleDay: true,
-      mood: 5,
+      isSingleDay: false,
       weather: '맑음'
     });
     previewUrls.forEach(url => URL.revokeObjectURL(url));
@@ -385,10 +405,12 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                 checked={formData.isSingleDay}
                 onChange={(e) => {
                   const isSingleDay = e.target.checked;
+                  const today = dayjs().format('YYYY-MM-DD');
                   setFormData({
                     ...formData,
                     isSingleDay,
-                    endDate: isSingleDay ? formData.startDate : formData.endDate
+                    startDate: isSingleDay ? today : formData.startDate,
+                    endDate: isSingleDay ? today : formData.endDate
                   });
                 }}
                 style={{
@@ -408,58 +430,65 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                   userSelect: 'none',
                 }}
               >
-                당일 이벤트
+                당일
               </label>
             </div>
 
-            {/* 날짜 필드들 */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              {/* 시작 날짜 */}
+            {/* 날짜 필드들 (당일이 아닐 때만 표시) */}
+            {!formData.isSingleDay && (
               <div style={{
-                flex: formData.isSingleDay ? '1 1 100%' : '1 1 calc(50% - 6px)',
-                minWidth: 120,
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 4
+                gap: 8,
               }}>
-                <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                  {formData.isSingleDay ? '날짜' : '시작 날짜'}
-                </label>
-                <input
-                  type="date"
-                  value={formData.startDate}
-                  onChange={(e) => {
-                    const newStartDate = e.target.value;
-                    setFormData({
-                      ...formData,
-                      startDate: newStartDate,
-                      endDate: formData.isSingleDay ? newStartDate : formData.endDate
-                    });
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px',
-                    fontSize: 14,
-                    backgroundColor: 'white',
-                    border: `1px solid ${styles.colors.gray200}`,
-                    borderRadius: 6,
-                    outline: 'none',
-                    fontFamily: styles.fontFamily,
-                  }}
-                />
-              </div>
-
-              {/* 끝 날짜 (당일이 아닐 때만 표시) */}
-              {!formData.isSingleDay && (
+                {/* 시작 날짜 */}
                 <div style={{
-                  flex: '1 1 calc(50% - 6px)',
-                  minWidth: 120,
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 4
+                  alignItems: 'center',
+                  gap: 12,
                 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                    종료 날짜
+                  <label style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: styles.colors.gray500,
+                    minWidth: 60,
+                    flexShrink: 0,
+                  }}>
+                    시작
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                    style={{
+                      flex: 1,
+                      padding: '10px 12px',
+                      fontSize: 15,
+                      backgroundColor: 'white',
+                      border: `1px solid ${styles.colors.gray200}`,
+                      borderRadius: 8,
+                      outline: 'none',
+                      fontFamily: styles.fontFamily,
+                      boxSizing: 'border-box',
+                      minWidth: 0,
+                    }}
+                  />
+                </div>
+
+                {/* 끝 날짜 */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                }}>
+                  <label style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: styles.colors.gray500,
+                    minWidth: 60,
+                    flexShrink: 0,
+                  }}>
+                    종료
                   </label>
                   <input
                     type="date"
@@ -467,19 +496,21 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                     min={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
                     style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      fontSize: 14,
+                      flex: 1,
+                      padding: '10px 12px',
+                      fontSize: 15,
                       backgroundColor: 'white',
                       border: `1px solid ${styles.colors.gray200}`,
-                      borderRadius: 6,
+                      borderRadius: 8,
                       outline: 'none',
                       fontFamily: styles.fontFamily,
+                      boxSizing: 'border-box',
+                      minWidth: 0,
                     }}
                   />
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* 장소 */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -528,6 +559,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                 }}
               >
                 <option value="데이트">💕 데이트</option>
+                <option value="일상">📅 일상</option>
                 <option value="여행">✈️ 여행</option>
                 <option value="맛집">🍽️ 맛집</option>
                 <option value="축구">⚽ 축구</option>
@@ -557,39 +589,6 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                 <option value="비">🌧️ Rainy</option>
                 <option value="눈">❄️ Snowy</option>
               </select>
-            </div>
-          </div>
-
-          {/* Mood */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-              Mood ({formData.mood}/5)
-            </label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[1, 2, 3, 4, 5].map((value) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setFormData({ ...formData, mood: value })}
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: '50%',
-                    border: 'none',
-                    backgroundColor: value <= formData.mood ? styles.colors.primary : styles.colors.gray100,
-                    color: value <= formData.mood ? 'white' : styles.colors.gray400,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', fontVariationSettings: "'FILL' 1" }}>
-                    favorite
-                  </span>
-                </button>
-              ))}
             </div>
           </div>
 

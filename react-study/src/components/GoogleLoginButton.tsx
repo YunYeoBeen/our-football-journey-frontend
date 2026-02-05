@@ -25,7 +25,6 @@ const GoogleIcon = () => (
 );
 
 export default function GoogleLoginButton() {
-  const [isHovered, setIsHovered] = useState(false);
   const [isPressed, setIsPressed] = useState(false);
 
   const handleGoogleLogin = () => {
@@ -36,40 +35,36 @@ export default function GoogleLoginButton() {
   return (
     <button
       onClick={handleGoogleLogin}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setIsPressed(false);
-      }}
       onMouseDown={() => setIsPressed(true)}
       onMouseUp={() => setIsPressed(false)}
+      onMouseLeave={() => setIsPressed(false)}
+      onTouchStart={() => setIsPressed(true)}
+      onTouchEnd={() => setIsPressed(false)}
       style={{
         display: 'flex',
         width: '100%',
         cursor: 'pointer',
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden',
-        borderRadius: '12px',
-        height: '56px',
+        borderRadius: '9999px',
+        height: '54px',
         padding: '0 24px',
-        backgroundColor: isHovered ? '#f9f9f9' : '#ffffff',
-        color: '#181110',
-        border: '1px solid #F3F3F3',
-        boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+        backgroundColor: '#ffffff',
+        color: 'var(--color-brand-gray)',
+        border: '1px solid var(--color-border)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
         gap: '12px',
-        transform: isPressed ? 'scale(0.98)' : 'scale(1)',
-        transition: 'all 0.2s ease',
-        fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
+        transform: isPressed ? 'scale(0.97)' : 'scale(1)',
+        transition: 'all 0.15s ease',
         outline: 'none',
       }}
     >
       <GoogleIcon />
       <span
         style={{
-          fontSize: '16px',
-          fontWeight: 600,
-          letterSpacing: '-0.01em',
+          fontSize: '15px',
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
         }}
       >
         Sign in with Google
