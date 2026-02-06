@@ -38,6 +38,7 @@ export interface BoardListItem {
   content?: string;
   imageUrl?: string;
   weather?: string;
+  writer?: string;
 }
 
 export interface BoardListResponse {
@@ -65,6 +66,7 @@ export interface BoardDetailResponse {
   content: string;
   images: string[];  // 상세 조회 시 이미지 key 배열
   weather: string;
+  writer?: string;
   createdAt?: string;
   updatedAt?: string;
 }

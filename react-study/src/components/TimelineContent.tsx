@@ -625,9 +625,25 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
                   fontSize: 18,
                   fontWeight: 700,
                   color: styles.colors.textDark,
-                  margin: '0 0 12px 0',
+                  margin: '0 0 4px 0',
                   lineHeight: 1.3,
                 }}>{item.title}</h3>
+
+                {item.writer && (
+                  <p style={{
+                    fontSize: 12,
+                    color: styles.colors.gray400,
+                    margin: '0 0 12px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}>
+                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>person</span>
+                    {item.writer}
+                  </p>
+                )}
+
+                {!item.writer && <div style={{ marginBottom: 8 }} />}
 
                 {item.thumbnailUrl && (
                   <div style={{

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
 
 const styles = {
   colors: {
@@ -21,13 +22,21 @@ export default function ImageViewer({ images, initialIndex, visible, onClose }: 
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
-  };
+  }, [images.length]);
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
-  };
+  }, [images.length]);
+
+  // 스와이프 제스처
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleNext,
+    onSwipeRight: handlePrevious,
+    onSwipeDown: onClose,
+    threshold: 50,
+  });
 
   useEffect(() => {
     if (!visible) return;
@@ -44,7 +53,7 @@ export default function ImageViewer({ images, initialIndex, visible, onClose }: 
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [visible, onClose, images.length]);
+  }, [visible, onClose, handlePrevious, handleNext]);
 
   if (!visible) return null;
 
@@ -188,12 +197,14 @@ export default function ImageViewer({ images, initialIndex, visible, onClose }: 
         src={images[currentIndex]}
         alt={`Image ${currentIndex + 1}`}
         onClick={(e) => e.stopPropagation()}
+        {...swipeHandlers}
         style={{
           maxWidth: '90vw',
           maxHeight: '90vh',
           objectFit: 'contain',
           borderRadius: 8,
           boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+          touchAction: 'none',
         }}
       />
     </div>

@@ -212,11 +212,15 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     onSwipeLeft: () => {
       if (viewMode === 'week') {
         goToNextWeek();
+      } else {
+        goToNextMonth();
       }
     },
     onSwipeRight: () => {
       if (viewMode === 'week') {
         goToPrevWeek();
+      } else {
+        goToPrevMonth();
       }
     },
     threshold: 50,
@@ -917,10 +921,12 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             {viewMode === 'month' ? (
               <div
                 ref={gridRef}
+                {...horizontalSwipe}
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
                   gap: 4,
+                  touchAction: 'pan-y',
                 }}
               >
                 {calendarWeeks.flat().map((day, index) => renderDayCell(day, index))}

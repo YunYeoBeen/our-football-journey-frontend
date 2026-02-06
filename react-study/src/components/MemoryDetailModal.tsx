@@ -1,9 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { message } from 'antd';
+import imageCompression from 'browser-image-compression';
 import { boardApi } from '../services/boardApi';
 import type { BoardDetailResponse } from '../services/boardApi';
 import ImageViewer from './ImageViewer';
 import { s3Api } from '../services/s3Api';
+import { CategoryMap, WeatherMap } from '../types';
+import { useSwipeGesture } from '../hooks/useSwipeGesture';
+
+// 이미지 압축 옵션
+const compressionOptions = {
+  maxSizeMB: 1,
+  maxWidthOrHeight: 1920,
+  useWebWorker: true,
+};
 
 const styles = {
   colors: {
@@ -83,6 +93,21 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   const [deletedImageKeys, setDeletedImageKeys] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 이미지 스와이프 핸들러
+  const handleImagePrevious = useCallback(() => {
+    setCurrentImageIndex(prev => prev > 0 ? prev - 1 : imageUrls.length - 1);
+  }, [imageUrls.length]);
+
+  const handleImageNext = useCallback(() => {
+    setCurrentImageIndex(prev => prev < imageUrls.length - 1 ? prev + 1 : 0);
+  }, [imageUrls.length]);
+
+  const imageSwipeHandlers = useSwipeGesture({
+    onSwipeLeft: handleImageNext,
+    onSwipeRight: handleImagePrevious,
+    threshold: 50,
+  });
+
   useEffect(() => {
     if (visible && boardId) {
       fetchDetail(boardId);
@@ -98,14 +123,14 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       setDetail(response);
       setCurrentImageIndex(0);
 
-      // Initialize edit form
+      // Initialize edit form (서버 영문값 → 한글로 변환)
       setEditForm({
         title: response.title,
         startDate: response.startDate,
         endDate: response.endDate || response.startDate,
         place: response.place,
-        category: response.category,
-        weather: response.weather,
+        category: CategoryMap.toClient[response.category] || response.category,
+        weather: WeatherMap.toClient[response.weather] || response.weather,
         content: response.content,
       });
       setDeletedImageKeys([]);
@@ -184,12 +209,26 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       // Calculate kept images
       const keepImageKeys = detail.images.filter(key => !deletedImageKeys.includes(key));
 
-      // Upload new images
+      // Upload new images (압축 후)
       const addImageFileNames: string[] = [];
       if (newImages.length > 0) {
+        // 이미지 압축
+        const compressedFiles = await Promise.all(
+          newImages.map(async (file) => {
+            try {
+              const compressed = await imageCompression(file, compressionOptions);
+              console.log(`압축: ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
+              return compressed;
+            } catch {
+              console.warn(`압축 실패, 원본 사용: ${file.name}`);
+              return file;
+            }
+          })
+        );
+
         const presignedUrls = await s3Api.getPresignedUploadUrls(newImages.map(f => f.name));
         for (let i = 0; i < presignedUrls.length; i++) {
-          await s3Api.uploadToS3(presignedUrls[i].uploadUrl, newImages[i]);
+          await s3Api.uploadToS3(presignedUrls[i].uploadUrl, compressedFiles[i]);
           addImageFileNames.push(presignedUrls[i].key);
         }
       }
@@ -199,8 +238,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         startDate: editForm.startDate,
         endDate: editForm.endDate === editForm.startDate ? undefined : editForm.endDate,
         place: editForm.place,
-        category: editForm.category,
-        weather: editForm.weather,
+        category: CategoryMap.toServer[editForm.category] || editForm.category,
+        weather: WeatherMap.toServer[editForm.weather] || editForm.weather,
         content: editForm.content,
         keepImageKeys,
         addImageFileNames,
@@ -403,11 +442,13 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                         setImageViewerIndex(currentImageIndex);
                         setImageViewerVisible(true);
                       }}
+                      {...imageSwipeHandlers}
                       style={{
                         width: '100%',
                         height: 280,
                         objectFit: 'cover',
                         cursor: 'pointer',
+                        touchAction: 'pan-y',
                       }}
                     />
                     {/* Image Navigation */}
@@ -532,28 +573,45 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                   </div>
 
                   {/* Start Date & End Date */}
-                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
-                        시작 날짜
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+                    {/* 시작 날짜 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <label style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: styles.colors.gray500,
+                        minWidth: 60,
+                        flexShrink: 0,
+                      }}>
+                        시작
                       </label>
                       <input
                         type="date"
                         value={editForm.startDate.split('T')[0]}
                         onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
                         style={{
-                          width: '100%',
+                          flex: 1,
                           padding: '10px 12px',
+                          fontSize: 15,
+                          backgroundColor: 'white',
                           border: `1px solid ${styles.colors.gray200}`,
                           borderRadius: 8,
-                          fontSize: 14,
                           outline: 'none',
+                          boxSizing: 'border-box',
+                          minWidth: 0,
                         }}
                       />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>
-                        종료 날짜
+                    {/* 종료 날짜 */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <label style={{
+                        fontSize: 13,
+                        fontWeight: 500,
+                        color: styles.colors.gray500,
+                        minWidth: 60,
+                        flexShrink: 0,
+                      }}>
+                        종료
                       </label>
                       <input
                         type="date"
@@ -561,12 +619,15 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                         min={editForm.startDate.split('T')[0]}
                         onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))}
                         style={{
-                          width: '100%',
+                          flex: 1,
                           padding: '10px 12px',
+                          fontSize: 15,
+                          backgroundColor: 'white',
                           border: `1px solid ${styles.colors.gray200}`,
                           borderRadius: 8,
-                          fontSize: 14,
                           outline: 'none',
+                          boxSizing: 'border-box',
+                          minWidth: 0,
                         }}
                       />
                     </div>
@@ -677,8 +738,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                             startDate: detail.startDate,
                             endDate: detail.endDate || detail.startDate,
                             place: detail.place,
-                            category: detail.category,
-                            weather: detail.weather,
+                            category: CategoryMap.toClient[detail.category] || detail.category,
+                            weather: WeatherMap.toClient[detail.weather] || detail.weather,
                             content: detail.content,
                           });
                         }
@@ -738,6 +799,11 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
                       <span style={{ fontSize: 14, color: styles.colors.textMuted }}>
                         📍 {detail.place}
                       </span>
+                      {detail.writer && (
+                        <span style={{ fontSize: 14, color: styles.colors.textMuted }}>
+                          ✍️ {detail.writer}
+                        </span>
+                      )}
                     </div>
                   </div>
 
