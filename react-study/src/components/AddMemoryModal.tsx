@@ -128,7 +128,6 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
           selectedFiles.map(async (file) => {
             try {
               const compressed = await imageCompression(file, compressionOptions);
-              console.log(`압축: ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
               return compressed;
             } catch {
               console.warn(`압축 실패, 원본 사용: ${file.name}`);
@@ -164,8 +163,10 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
 
       await boardApi.create(boardData);
       message.success('Memory saved!');
+      if (onCreated) {
+        await onCreated();
+      }
       handleClose();
-      await onCreated?.();
     } catch (error) {
       // 저장 실패
       console.error('게시글 생성 실패:', error);

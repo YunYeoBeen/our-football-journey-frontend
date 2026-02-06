@@ -13,7 +13,7 @@ const colors = {
   ulsanBlue: '#004A9F',
   attending: '#22c55e',
   notAttending: '#ef4444',
-  unknown: '#f59e0b',
+  tv: '#8b5cf6',  // 보라색 (TV 시청)
   textDark: '#181110',
   textMuted: '#8d645e',
   gray100: '#f1f1f1',
@@ -30,6 +30,7 @@ interface CalendarContentProps {
   loading: boolean;
   onItemClick: (boardId: number) => void;
   onDateSelect?: (date: string | null) => void;
+  refreshKey?: number;  // Increment to trigger refetch
 }
 
 type ViewMode = 'month' | 'week';
@@ -39,6 +40,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   loading,
   onItemClick,
   onDateSelect,
+  refreshKey,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventDto[]>([]);
@@ -150,11 +152,9 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     if ((calendarHeight ?? monthHeight) < threshold) {
       setCalendarHeight(weekHeight);
       setViewMode('week');
-      console.log('[viewMode] switched to week');
     } else {
       setCalendarHeight(monthHeight);
       setViewMode('month');
-      console.log('[viewMode] switched to month');
     }
   }, [isDragging, calendarHeight, monthHeight]);
 
@@ -279,7 +279,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       }
     };
     fetchCalendarEvents();
-  }, [currentMonth]);
+  }, [currentMonth, refreshKey]);
 
   // Group events by date (considering date ranges)
   const eventsByDate = useMemo(() => {
@@ -378,7 +378,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   // Events for the current week (week view)
   const weekEvents = useMemo(() => {
     const currentWeek = calendarWeeks[activeWeekIndex];
-    console.log('[weekEvents] activeWeekIndex:', activeWeekIndex, 'currentWeek:', currentWeek);
     if (!currentWeek) return [];
 
     const weekDays = currentWeek.filter((day): day is dayjs.Dayjs => day !== null);
@@ -386,10 +385,8 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
 
     const weekStart = weekDays[0];
     const weekEnd = weekDays[weekDays.length - 1];
-    console.log('[weekEvents] weekStart:', weekStart.format('YYYY-MM-DD'), 'weekEnd:', weekEnd.format('YYYY-MM-DD'));
-    console.log('[weekEvents] calendarEvents count:', calendarEvents.length);
 
-    const filtered = calendarEvents
+    return calendarEvents
       .filter(e => {
         const eventStart = dayjs(e.startDate);
         const eventEnd = e.endDate ? dayjs(e.endDate) : eventStart;
@@ -398,9 +395,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
                (eventEnd.isAfter(weekStart, 'day') || eventEnd.isSame(weekStart, 'day'));
       })
       .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
-
-    console.log('[weekEvents] filtered count:', filtered.length, filtered);
-    return filtered;
   }, [calendarEvents, calendarWeeks, activeWeekIndex]);
 
   // Events list for month view (all or filtered)
@@ -495,8 +489,8 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
                 ? colors.attending
                 : person.status === 'NOT_ATTENDING'
                   ? colors.notAttending
-                  : person.status === 'UNSURE'
-                    ? colors.unknown
+                  : person.status === 'TV'
+                    ? colors.tv
                     : colors.ulsanBlue,
             }} />
           ))}
@@ -594,17 +588,17 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       ? colors.attending
       : myStatus === 'NOT_ATTENDING'
         ? colors.notAttending
-        : myStatus === 'UNSURE'
-          ? colors.unknown
+        : myStatus === 'TV'
+          ? colors.tv
           : colors.ulsanBlue;
 
     const statusLabel = myStatus === 'ATTENDING' ? '직관'
       : myStatus === 'NOT_ATTENDING' ? '불참'
-        : myStatus === 'UNSURE' ? '불확실' : undefined;
+        : myStatus === 'TV' ? 'TV' : undefined;
 
     const statusIcon = myStatus === 'ATTENDING' ? 'stadium'
       : myStatus === 'NOT_ATTENDING' ? 'cancel'
-        : myStatus === 'UNSURE' ? 'help' : undefined;
+        : myStatus === 'TV' ? 'tv' : undefined;
 
     return (
       <div
@@ -670,10 +664,10 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
               {event.attendances.map((person, i) => {
                 const label = person.status === 'ATTENDING' ? '직관'
                   : person.status === 'NOT_ATTENDING' ? '불참'
-                    : person.status === 'UNSURE' ? '불확실' : '미정';
+                    : person.status === 'TV' ? 'TV' : '미정';
                 const color = person.status === 'ATTENDING' ? colors.attending
                   : person.status === 'NOT_ATTENDING' ? colors.notAttending
-                    : person.status === 'UNSURE' ? colors.unknown
+                    : person.status === 'TV' ? colors.tv
                       : colors.gray400;
                 return (
                   <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
@@ -767,7 +761,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
               <span style={{ fontSize: 10, fontWeight: 600, color: colors.notAttending }}>불참</span>
             </button>
             <button
-              onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, 'UNSURE'); }}
+              onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, 'TV'); }}
               disabled={attendanceUpdating}
               style={{
                 display: 'flex',
@@ -777,15 +771,15 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
                 padding: '6px 10px',
                 border: 'none',
                 borderRadius: 8,
-                backgroundColor: myStatus === 'UNSURE' ? `${colors.unknown}20` : 'transparent',
+                backgroundColor: myStatus === 'TV' ? `${colors.tv}20` : 'transparent',
                 cursor: attendanceUpdating ? 'not-allowed' : 'pointer',
                 transition: 'background-color 0.15s',
               }}
-              onMouseEnter={(e) => { if (!attendanceUpdating) e.currentTarget.style.backgroundColor = `${colors.unknown}15`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = myStatus === 'UNSURE' ? `${colors.unknown}20` : 'transparent'; }}
+              onMouseEnter={(e) => { if (!attendanceUpdating) e.currentTarget.style.backgroundColor = `${colors.tv}15`; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = myStatus === 'TV' ? `${colors.tv}20` : 'transparent'; }}
             >
-              <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', color: colors.unknown }}>help</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: colors.unknown }}>불확실</span>
+              <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', color: colors.tv }}>tv</span>
+              <span style={{ fontSize: 10, fontWeight: 600, color: colors.tv }}>TV</span>
             </button>
           </div>
         )}
@@ -808,7 +802,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
           { color: colors.ulsanBlue, label: '경기' },
           { color: colors.attending, label: '직관' },
           { color: colors.notAttending, label: '불참' },
-          { color: colors.unknown, label: '불확실' },
+          { color: colors.tv, label: 'TV' },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color }} />
@@ -915,8 +909,8 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
           <div style={{
             overflow: 'hidden',
             transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            height: (calendarHeight ?? monthHeight) + 8,
-            paddingBottom: 8,
+            height: (calendarHeight ?? monthHeight) + 16,
+            paddingBottom: 16,
           }}>
             {viewMode === 'month' ? (
               <div
@@ -972,7 +966,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       )}
 
       {/* Week View: Events Panel */}
-      {(() => { console.log('[RENDER] viewMode:', viewMode, 'weekEvents.length:', weekEvents.length); return null; })()}
       {viewMode === 'week' && (
         <div style={{
           marginTop: 8,
@@ -997,14 +990,14 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
               {selectedDate
                 ? dayjs(selectedDate).format('M월 D일 (ddd)') + ' 일정'
                 : (() => {
-                    const week = calendarWeeks[activeWeekIndex];
-                    const firstDay = week?.find(d => d !== null);
-                    const lastDay = [...(week || [])].reverse().find(d => d !== null);
-                    if (firstDay && lastDay) {
-                      return `${firstDay.format('M/D')} - ${lastDay.format('M/D')} 일정`;
-                    }
-                    return '이번 주 일정';
-                  })()}
+                const week = calendarWeeks[activeWeekIndex];
+                const firstDay = week?.find(d => d !== null);
+                const lastDay = [...(week || [])].reverse().find(d => d !== null);
+                if (firstDay && lastDay) {
+                  return `${firstDay.format('M/D')} - ${lastDay.format('M/D')} 일정`;
+                }
+                return '이번 주 일정';
+              })()}
             </h3>
             {selectedDate && (
               <button

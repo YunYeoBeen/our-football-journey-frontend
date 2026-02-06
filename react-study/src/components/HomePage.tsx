@@ -40,6 +40,7 @@ const HomePage: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   // Auth check
   useEffect(() => {
@@ -183,6 +184,7 @@ const HomePage: React.FC = () => {
 
   const refreshList = async () => {
     thumbnailCache.clear();
+    setRefreshKey(prev => prev + 1);
     await fetchItems(0);
   };
 
@@ -208,6 +210,7 @@ const HomePage: React.FC = () => {
             loading={loading}
             onItemClick={handleItemClick}
             onDateSelect={setSelectedCalendarDate}
+            refreshKey={refreshKey}
           />
         );
       default:

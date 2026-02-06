@@ -1,7 +1,7 @@
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/matches`;
 
 // 관람 상태
-export type MatchAttendanceStatus = 'ATTENDING' | 'NOT_ATTENDING' | 'UNSURE';
+export type MatchAttendanceStatus = 'ATTENDING' | 'NOT_ATTENDING' | 'TV';
 
 // 캘린더 이벤트 타입
 export type CalendarEventType = 'MATCH' | 'BOARD';

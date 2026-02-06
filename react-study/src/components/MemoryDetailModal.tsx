@@ -165,7 +165,9 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       setIsDeleting(true);
       await boardApi.delete(boardId);
       message.success('Memory deleted!');
-      await onDeleted?.();
+      if (onDeleted) {
+        await onDeleted();
+      }
       handleClose();
     } catch {
       message.error('Failed to delete. Please try again.');
@@ -217,7 +219,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           newImages.map(async (file) => {
             try {
               const compressed = await imageCompression(file, compressionOptions);
-              console.log(`압축: ${file.name} ${(file.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
               return compressed;
             } catch {
               console.warn(`압축 실패, 원본 사용: ${file.name}`);
@@ -233,10 +234,18 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         }
       }
 
+      // 날짜에서 시간 부분만 추출하거나 T00:00:00 추가
+      const formatDate = (dateStr: string) => {
+        if (dateStr.includes('T')) {
+          return dateStr.split('T')[0] + 'T00:00:00';
+        }
+        return dateStr + 'T00:00:00';
+      };
+
       await boardApi.update(boardId, {
         title: editForm.title,
-        startDate: editForm.startDate,
-        endDate: editForm.endDate === editForm.startDate ? undefined : editForm.endDate,
+        startDate: formatDate(editForm.startDate),
+        endDate: editForm.endDate === editForm.startDate ? undefined : formatDate(editForm.endDate),
         place: editForm.place,
         category: CategoryMap.toServer[editForm.category] || editForm.category,
         weather: WeatherMap.toServer[editForm.weather] || editForm.weather,
@@ -249,7 +258,9 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       message.success('Memory updated!');
       setIsEditMode(false);
       await fetchDetail(boardId);
-      await onUpdated?.();
+      if (onUpdated) {
+        await onUpdated();
+      }
     } catch {
       message.error('Failed to update. Please try again.');
     } finally {
