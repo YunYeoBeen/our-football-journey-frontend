@@ -89,9 +89,11 @@ export default function CommentItem({
     }
   };
 
-  // 날짜 포맷팅
+  // 날짜 포맷팅 (서버에서 UTC로 오는 시간을 로컬로 변환)
   const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+    // 서버에서 UTC 시간이 Z 없이 오는 경우 Z를 추가
+    const isoString = dateStr.endsWith('Z') || dateStr.includes('+') ? dateStr : dateStr + 'Z';
+    const date = new Date(isoString);
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);

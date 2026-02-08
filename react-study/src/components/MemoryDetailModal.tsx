@@ -45,7 +45,7 @@ const weatherEmoji: Record<string, string> = {
   'SUNNY': '☀️', 'CLOUDY': '☁️', 'RAINY': '🌧️', 'SNOW': '❄️',
 };
 
-const categories = ['데이트', '여행', '맛집', '축구'];
+const categories = ['데이트', '여행', '맛집', '축구', '일상'];
 const weathers = ['맑음', '흐림', '비', '눈'];
 
 interface MemoryDetailModalProps {
@@ -276,7 +276,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       style={{
         position: 'relative',
         width: isDesktop ? '55%' : '100%',
-        height: isDesktop ? '100%' : 280,
+        height: isDesktop ? '100%' : 200,
         backgroundColor: '#000',
         flexShrink: 0,
       }}
@@ -412,7 +412,13 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
 
   // 콘텐츠 헤더 (View Mode)
   const renderContentHeader = () => (
-    <div style={{ padding: 16, borderBottom: `1px solid ${styles.colors.gray100}` }}>
+    <div style={{
+      padding: 16,
+      borderBottom: `1px solid ${styles.colors.gray100}`,
+      maxHeight: isDesktop ? '50%' : '40%',
+      overflowY: 'auto',
+      flexShrink: 0,
+    }}>
       {/* 닫기 버튼 (데스크톱) */}
       {isDesktop && (
         <button
@@ -502,16 +508,16 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           style={{ width: '100%', padding: '8px 10px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
       </div>
       {/* Dates */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>시작</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 500, color: styles.colors.gray500, minWidth: 40, flexShrink: 0 }}>시작</label>
           <input type="date" value={editForm.startDate.split('T')[0]} onChange={(e) => setEditForm(prev => ({ ...prev, startDate: e.target.value }))}
-            style={{ width: '100%', padding: '8px 10px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            style={{ flex: 1, padding: '10px 12px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 8, fontSize: 15, outline: 'none', boxSizing: 'border-box', minWidth: 0 }} />
         </div>
-        <div style={{ flex: 1 }}>
-          <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>종료</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <label style={{ fontSize: 13, fontWeight: 500, color: styles.colors.gray500, minWidth: 40, flexShrink: 0 }}>종료</label>
           <input type="date" value={editForm.endDate.split('T')[0]} min={editForm.startDate.split('T')[0]} onChange={(e) => setEditForm(prev => ({ ...prev, endDate: e.target.value }))}
-            style={{ width: '100%', padding: '8px 10px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+            style={{ flex: 1, padding: '10px 12px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 8, fontSize: 15, outline: 'none', boxSizing: 'border-box', minWidth: 0 }} />
         </div>
       </div>
       {/* Place */}
