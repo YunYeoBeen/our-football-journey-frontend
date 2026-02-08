@@ -9,7 +9,7 @@ import { CategoryMap, WeatherMap } from '../types';
 import type { CommentResponseDto } from '../types';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { useAuthStore } from '../store/userAuthStore';
-import CommentSection from './comment/CommentSection';
+import CommentModal from './comment/CommentModal';
 
 const compressionOptions = {
   maxSizeMB: 1,
@@ -70,6 +70,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   const [isSaving, setIsSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
+  const [commentModalVisible, setCommentModalVisible] = useState(false);
 
   const [editForm, setEditForm] = useState({
     title: '', startDate: '', endDate: '', place: '', category: '', weather: '', content: '',
@@ -276,7 +277,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       style={{
         position: 'relative',
         width: isDesktop ? '55%' : '100%',
-        height: isDesktop ? '100%' : 200,
+        height: isDesktop ? '100%' : 280,
         backgroundColor: '#000',
         flexShrink: 0,
       }}
@@ -414,10 +415,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   const renderContentHeader = () => (
     <div style={{
       padding: 16,
-      borderBottom: `1px solid ${styles.colors.gray100}`,
-      maxHeight: isDesktop ? '50%' : '40%',
+      flex: 1,
       overflowY: 'auto',
-      flexShrink: 0,
     }}>
       {/* 닫기 버튼 (데스크톱) */}
       {isDesktop && (
@@ -483,6 +482,26 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           <button onClick={handleDelete} disabled={isDeleting} style={{ padding: '6px 12px', backgroundColor: styles.colors.danger, color: 'white', border: 'none', borderRadius: 6, cursor: isDeleting ? 'not-allowed' : 'pointer', fontSize: 13, opacity: isDeleting ? 0.7 : 1 }}>{isDeleting ? '삭제 중...' : '삭제'}</button>
         </div>
       )}
+      {/* 댓글 보기 버튼 */}
+      <button
+        onClick={() => setCommentModalVisible(true)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          marginTop: 16,
+          padding: 0,
+          backgroundColor: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          fontSize: 12,
+          color: styles.colors.textLight,
+          fontFamily: styles.fontFamily,
+        }}
+      >
+        <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>chat_bubble_outline</span>
+        {comments.length > 0 ? `댓글 ${comments.length}개 보기` : '댓글 작성하기'}
+      </button>
     </div>
   );
 
@@ -621,15 +640,6 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
               ) : (
                 <>
                   {renderContentHeader()}
-                  {/* 댓글 섹션 */}
-                  <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-                    <CommentSection
-                      boardId={boardId!}
-                      comments={comments}
-                      currentUserName={currentUserName}
-                      onCommentsChange={handleCommentsChange}
-                    />
-                  </div>
                 </>
               )}
             </div>
@@ -643,6 +653,15 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       </div>
 
       <ImageViewer images={imageUrls} initialIndex={imageViewerIndex} visible={imageViewerVisible} onClose={() => setImageViewerVisible(false)} />
+
+      <CommentModal
+        visible={commentModalVisible}
+        boardId={boardId!}
+        comments={comments}
+        currentUserName={currentUserName}
+        onCommentsChange={handleCommentsChange}
+        onClose={() => setCommentModalVisible(false)}
+      />
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
