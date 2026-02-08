@@ -51,3 +51,30 @@ export const WeatherMap = {
   } as Record<string, string>
 };
 
+// 댓글 관련 타입
+export interface CommentResponseDto {
+  commentId: number;
+  userName: string;
+  content: string;
+  createdAt: string;
+  childCount?: number;
+}
+
+// 댓글 생성 요청 (parentId 있으면 대댓글, 없으면 부모 댓글)
+export interface CommentCreateRequest {
+  boardId: number;
+  parentId?: number;
+  content: string;
+  userName: string;
+}
+
+export interface CommentUpdateRequest {
+  content: string;
+}
+
+export interface ChildCommentsSliceResponse {
+  content: CommentResponseDto[];
+  last: boolean;  // Spring Slice는 hasNext 대신 last 반환
+  number: number;
+  size: number;
+}

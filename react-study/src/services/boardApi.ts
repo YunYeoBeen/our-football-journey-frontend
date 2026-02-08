@@ -55,6 +55,15 @@ export interface BoardSearchParams {
   size?: number;
 }
 
+// 댓글 응답 (상세 조회용)
+export interface CommentResponse {
+  commentId: number;
+  userName: string;
+  content: string;
+  createdAt: string;
+  childCount: number;  // 대댓글 수
+}
+
 // 게시물 상세 조회 응답
 export interface BoardDetailResponse {
   id: number;
@@ -69,6 +78,7 @@ export interface BoardDetailResponse {
   writer?: string;
   createdAt?: string;
   updatedAt?: string;
+  commentList?: CommentResponse[];  // 댓글 목록
 }
 
 // 게시물 수정 요청
@@ -136,7 +146,11 @@ export const boardApi = {
       throw new Error('게시물 조회에 실패했습니다.');
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      content: data.content,
+      hasNext: !data.last,  // Spring Slice의 last를 hasNext로 변환
+    };
   },
 
   // 게시물 상세 조회
@@ -231,6 +245,10 @@ export const boardApi = {
       throw new Error('검색에 실패했습니다.');
     }
 
-    return response.json();
+    const data = await response.json();
+    return {
+      content: data.content,
+      hasNext: !data.last,  // Spring Slice의 last를 hasNext로 변환
+    };
   }
 };

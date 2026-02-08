@@ -82,7 +82,12 @@ interface TimelineContentProps {
 
 // D-Day 계산
 const calculateDaysTogether = (): number => {
-  return dayjs().diff(TOGETHER_SINCE, 'day');
+  // 1. 오늘 날짜와 사귄 날짜의 시간을 00:00:00으로 초기화 (시간 차이 오차 제거)
+  const today = dayjs().startOf('day');
+  const startDate = dayjs(TOGETHER_SINCE).startOf('day');
+
+  // 2. 날짜 차이 구하고 + 1 (시작일 포함)
+  return today.diff(startDate, 'day') + 1;
 };
 
 const TimelineContent: React.FC<TimelineContentProps> = ({
