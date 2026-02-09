@@ -48,5 +48,22 @@ export const userApi = {
     }
 
     return response.json();
+  },
+
+  // Firebase 토큰 업데이트
+  async updateFirebaseToken(firebaseToken: string): Promise<void> {
+    const token = localStorage.getItem('accessToken');
+    const response = await fetch(`${API_BASE_URL}/firebase-token`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      },
+      body: JSON.stringify({ firebaseToken })
+    });
+
+    if (!response.ok) {
+      throw new Error('Firebase 토큰 업데이트에 실패했습니다.');
+    }
   }
 };

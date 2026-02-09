@@ -5,25 +5,41 @@ import LoginPage from './components/LoginPage';
 import OAuthCallback from './components/OAuthCallback'
 import HomePage from './components/HomePage';
 import { jwtDecode } from 'jwt-decode';
+import { getFCMToken } from './services/firebase';
+import { userApi } from './services/userApi';
 
 function App() {
   const { user, login } = useAuthStore();
 
   // 페이지 새로고침 시 로그인 상태 복구
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
-    if (token && !user) {
-      try {
-        const decoded = jwtDecode<{ name: string; email: string }>(token);
-        login(token, {
-          name: decoded.name,
-          email: decoded.email
-        });
-      } catch {
-        // 토큰 복구 실패
-        localStorage.removeItem('accessToken');
+    const restoreSession = async () => {
+      const token = localStorage.getItem('accessToken');
+      if (token && !user) {
+        try {
+          const decoded = jwtDecode<{ name: string; email: string }>(token);
+          login(token, {
+            name: decoded.name,
+            email: decoded.email
+          });
+
+          // FCM 토큰 획득 및 백엔드 전송
+          try {
+            const fcmToken = await getFCMToken();
+            if (fcmToken) {
+              await userApi.updateFirebaseToken(fcmToken);
+              console.log('FCM token refreshed on page load');
+            }
+          } catch (fcmError) {
+            console.warn('FCM token refresh failed:', fcmError);
+          }
+        } catch {
+          localStorage.removeItem('accessToken');
+        }
       }
-    }
+    };
+
+    restoreSession();
   }, [user, login]);
 
   return (

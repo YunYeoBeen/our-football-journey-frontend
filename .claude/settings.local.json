@@ -9,7 +9,8 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(react-study/node_modules/.bin/vite build:*)",
-      "Bash(aws s3 sync:*)"
+      "Bash(aws s3 sync:*)",
+      "Bash(npm install:*)"
     ]
   }
 }
