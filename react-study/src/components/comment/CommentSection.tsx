@@ -22,6 +22,7 @@ interface CommentSectionProps {
   comments: CommentResponseDto[];
   currentUserName: string;
   onCommentsChange: () => void;
+  isScrollable?: boolean; // true면 댓글 목록이 자체 스크롤, false면 부모가 스크롤
 }
 
 export default function CommentSection({
