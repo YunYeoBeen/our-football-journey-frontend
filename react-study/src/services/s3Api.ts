@@ -64,8 +64,9 @@ export const s3Api = {
   // 여러 이미지 조회용 Presigned URL 발급
   async getPresignedViewUrls(keys: string[]): Promise<string[]> {
     const token = localStorage.getItem('accessToken');
-    const keysParam = keys.join(',');
-    const response = await fetch(`${API_BASE_URL}/presigned/view-list?keys=${encodeURIComponent(keysParam)}`, {
+    // 각 key를 별도 파라미터로 전송 (Spring List 파싱 호환)
+    const queryParams = keys.map(key => `keys=${encodeURIComponent(key)}`).join('&');
+    const response = await fetch(`${API_BASE_URL}/presigned/view-list?${queryParams}`, {
       method: 'GET',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })

@@ -23,15 +23,16 @@ function App() {
             email: decoded.email
           });
 
-          // FCM 토큰 획득 및 백엔드 전송
-          try {
-            const fcmToken = await getFCMToken();
-            if (fcmToken) {
-              await userApi.updateFirebaseToken(fcmToken);
-              console.log('FCM token refreshed on page load');
+          // 이미 알림 권한이 부여된 경우에만 FCM 토큰 갱신
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try {
+              const fcmToken = await getFCMToken();
+              if (fcmToken) {
+                await userApi.updateFirebaseToken(fcmToken);
+              }
+            } catch (fcmError) {
+              console.warn('FCM token refresh failed:', fcmError);
             }
-          } catch (fcmError) {
-            console.warn('FCM token refresh failed:', fcmError);
           }
         } catch {
           localStorage.removeItem('accessToken');

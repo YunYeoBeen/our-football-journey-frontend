@@ -2,8 +2,6 @@ import { useAuthStore } from '../store/userAuthStore';
 import { jwtDecode } from 'jwt-decode';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFCMToken } from '../services/firebase';
-import { userApi } from '../services/userApi';
 
 export default function OAuthCallback() {
   const login = useAuthStore((s) => s.login);
@@ -34,18 +32,11 @@ export default function OAuthCallback() {
           email: decoded.email
         });
 
-        // FCM 토큰 획득 및 백엔드 전송
-        try {
-          const fcmToken = await getFCMToken();
-          if (fcmToken) {
-            await userApi.updateFirebaseToken(fcmToken);
-            console.log('FCM token sent to server');
-          }
-        } catch (fcmError) {
-          console.warn('FCM token registration failed:', fcmError);
-        }
-
-        navigate('/home');
+        // 알림 권한을 이미 요청한 적이 없으면 모달 표시를 위한 state 전달
+        const notificationRequested = localStorage.getItem('notificationRequested');
+        navigate('/home', {
+          state: { showNotificationModal: !notificationRequested }
+        });
       } catch {
         alert('토큰 처리 중 오류');
         navigate('/');

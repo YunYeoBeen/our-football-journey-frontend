@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from './Layout';
+import NotificationPermissionModal from './NotificationPermissionModal';
 import type { TabType } from './Layout';
 import TimelineContent from './TimelineContent';
 import CalendarContent from './CalendarContent';
@@ -22,11 +23,13 @@ interface BoardItemWithUrl extends BoardListItem {
 
 const HomePage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuthStore();
   const [activeTab, setActiveTab] = useState<TabType>('calendar');
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isDetailModalVisible, setIsDetailModalVisible] = useState(false);
   const [isProfileModalVisible, setIsProfileModalVisible] = useState(false);
+  const [isNotificationModalVisible, setIsNotificationModalVisible] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
 
@@ -49,6 +52,16 @@ const HomePage: React.FC = () => {
       navigate('/');
     }
   }, [navigate]);
+
+  // Show notification permission modal after login
+  useEffect(() => {
+    const state = location.state as { showNotificationModal?: boolean } | null;
+    if (state?.showNotificationModal) {
+      setIsNotificationModalVisible(true);
+      // Clear the state to prevent showing modal again on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   // Load profile image from server on mount
   useEffect(() => {
@@ -252,6 +265,11 @@ const HomePage: React.FC = () => {
         currentImageUrl={profileImageUrl}
         onClose={() => setIsProfileModalVisible(false)}
         onUpdated={handleProfileUpdated}
+      />
+
+      <NotificationPermissionModal
+        isOpen={isNotificationModalVisible}
+        onClose={() => setIsNotificationModalVisible(false)}
       />
     </>
   );
