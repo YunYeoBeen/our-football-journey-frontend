@@ -40,9 +40,6 @@ const HomePage: React.FC = () => {
   // Data state
   const [items, setItems] = useState<BoardItemWithUrl[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [page, setPage] = useState(0);
-  const [hasNext, setHasNext] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
 
   // Auth check
@@ -58,10 +55,21 @@ const HomePage: React.FC = () => {
     const state = location.state as { showNotificationModal?: boolean } | null;
     if (state?.showNotificationModal) {
       setIsNotificationModalVisible(true);
-      // Clear the state to prevent showing modal again on refresh
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location, navigate]);
+
+  // 알림 클릭으로 특정 게시글 열기 (URL ?boardId=xxx)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const boardId = params.get('boardId');
+    if (boardId) {
+      setSelectedBoardId(Number(boardId));
+      setIsDetailModalVisible(true);
+      // URL에서 boardId 파라미터 제거
+      navigate('/home', { replace: true });
+    }
+  }, [navigate]);
 
   // Load profile image from server on mount
   useEffect(() => {
@@ -98,18 +106,22 @@ const HomePage: React.FC = () => {
     fetchProfileImageUrl();
   }, [profileImageKey]);
 
-  // Fetch items
-  const fetchItems = useCallback(async (pageNum: number, isLoadMore = false) => {
+  // 전체 아이템 로드 (캘린더 썸네일 누락 방지)
+  const fetchAllItems = useCallback(async () => {
+    setLoading(true);
     try {
-      if (isLoadMore) {
-        setLoadingMore(true);
-      } else {
-        setLoading(true);
+      let allItems: BoardListItem[] = [];
+      let pageNum = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await boardApi.getAllList(pageNum, 50);
+        allItems = [...allItems, ...response.content];
+        hasMore = response.hasNext;
+        pageNum++;
       }
 
-      const response = await boardApi.getAllList(pageNum, 12);
-
-      const itemsWithKeys = response.content.filter(
+      const itemsWithKeys = allItems.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
       );
       const urlMap: Record<string, string> = {};
@@ -134,31 +146,23 @@ const HomePage: React.FC = () => {
         });
       }
 
-      const itemsWithUrls: BoardItemWithUrl[] = response.content.map(item => ({
+      const itemsWithUrls: BoardItemWithUrl[] = allItems.map(item => ({
         ...item,
-        thumbnailUrl: item.thumbnail ? urlMap[item.thumbnail] : undefined
+        thumbnailUrl: item.thumbnail ? (urlMap[item.thumbnail] || thumbnailCache.get(item.thumbnail)) : undefined
       }));
 
-      if (isLoadMore) {
-        setItems(prev => [...prev, ...itemsWithUrls]);
-      } else {
-        setItems(itemsWithUrls);
-      }
-
-      setHasNext(response.hasNext);
-      setPage(pageNum);
+      setItems(itemsWithUrls);
     } catch {
       // 게시물 조회 실패
     } finally {
       setLoading(false);
-      setLoadingMore(false);
     }
   }, []);
 
   // Initial load
   useEffect(() => {
-    fetchItems(0);
-  }, [fetchItems]);
+    fetchAllItems();
+  }, [fetchAllItems]);
 
   const handleTabChange = (tab: TabType) => {
     setActiveTab(tab);
@@ -189,16 +193,10 @@ const HomePage: React.FC = () => {
     setIsDetailModalVisible(true);
   };
 
-  const handleLoadMore = () => {
-    if (!loadingMore && hasNext) {
-      fetchItems(page + 1, true);
-    }
-  };
-
   const refreshList = async () => {
     thumbnailCache.clear();
     setRefreshKey(prev => prev + 1);
-    await fetchItems(0);
+    await fetchAllItems();
   };
 
   // Render content based on active tab
@@ -209,10 +207,10 @@ const HomePage: React.FC = () => {
           <TimelineContent
             items={items}
             loading={loading}
-            loadingMore={loadingMore}
-            hasNext={hasNext}
+            loadingMore={false}
+            hasNext={false}
             onItemClick={handleItemClick}
-            onLoadMore={handleLoadMore}
+            onLoadMore={() => {}}
             profileImageUrl={profileImageUrl}
           />
         );

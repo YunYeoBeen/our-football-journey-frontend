@@ -1,3 +1,5 @@
+import { authFetch } from './authFetch';
+
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/user`;
 
 export interface UserProfileImageResponse {
@@ -16,7 +18,7 @@ export const userApi = {
   // 프로필 이미지 변경
   async updateProfileImage(imageKey: string): Promise<UserProfileImageResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/profile`, {
+    const response = await authFetch(`${API_BASE_URL}/profile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -35,7 +37,7 @@ export const userApi = {
   // 내 프로필 조회
   async getMyProfile(): Promise<UserProfileResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/me`, {
+    const response = await authFetch(`${API_BASE_URL}/me`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -53,7 +55,7 @@ export const userApi = {
   // Firebase 토큰 업데이트
   async updateFirebaseToken(firebaseToken: string): Promise<void> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/firebase-token`, {
+    const response = await authFetch(`${API_BASE_URL}/firebase-token`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

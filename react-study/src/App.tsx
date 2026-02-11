@@ -1,12 +1,94 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/userAuthStore';
 import LoginPage from './components/LoginPage';
 import OAuthCallback from './components/OAuthCallback'
 import HomePage from './components/HomePage';
 import { jwtDecode } from 'jwt-decode';
-import { getFCMToken } from './services/firebase';
+import { getFCMToken, onForegroundMessage } from './services/firebase';
 import { userApi } from './services/userApi';
+
+// 포그라운드 알림 토스트 (클릭 시 게시글 이동)
+function showNotificationToast(title: string, body: string, boardId?: string) {
+  const existing = document.getElementById('fcm-toast');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'fcm-toast';
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 99998;
+    display: flex;
+    justify-content: center;
+    padding-top: 16px;
+    pointer-events: none;
+  `;
+
+  const toast = document.createElement('div');
+  toast.style.cssText = `
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+    cursor: ${boardId ? 'pointer' : 'default'};
+    max-width: 360px;
+    width: calc(100vw - 32px);
+  `;
+
+  toast.innerHTML = `
+    <div style="
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #ffb4a8, #ff8a75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    ">
+      <span style="font-size: 18px; font-family: 'Material Symbols Outlined'; color: white;">notifications</span>
+    </div>
+    <div style="flex: 1; min-width: 0;">
+      <p style="margin: 0; font-size: 14px; font-weight: 700; color: #181110; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${title}</p>
+      <p style="margin: 2px 0 0; font-size: 13px; color: #8d645e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</p>
+    </div>
+    <span style="font-size: 18px; font-family: 'Material Symbols Outlined'; color: #9ca3af; flex-shrink: 0;">chevron_right</span>
+  `;
+
+  if (boardId) {
+    toast.addEventListener('click', () => {
+      overlay.remove();
+      window.location.href = `/home?boardId=${boardId}`;
+    });
+  }
+
+  overlay.appendChild(toast);
+  document.body.appendChild(overlay);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateY(0)';
+    });
+  });
+
+  // 5초 후 자동 사라짐
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-20px)';
+    setTimeout(() => overlay.remove(), 400);
+  }, 5000);
+}
 
 function App() {
   const { user, login } = useAuthStore();
@@ -42,6 +124,30 @@ function App() {
 
     restoreSession();
   }, [user, login]);
+
+  // 포그라운드 FCM 메시지 수신
+  const handleForegroundMessage = useCallback(() => {
+    const unsubscribe = onForegroundMessage((payload: unknown) => {
+      const msg = payload as {
+        notification?: { title?: string; body?: string };
+        data?: { boardId?: string };
+      };
+      const title = msg.notification?.title || '새 알림';
+      const body = msg.notification?.body || '';
+      const boardId = msg.data?.boardId;
+      showNotificationToast(title, body, boardId);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (user) {
+      const unsubscribe = handleForegroundMessage();
+      return () => {
+        if (typeof unsubscribe === 'function') unsubscribe();
+      };
+    }
+  }, [user, handleForegroundMessage]);
 
   return (
     <BrowserRouter>

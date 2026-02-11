@@ -10,7 +10,8 @@
       "Bash(npm run build:*)",
       "Bash(react-study/node_modules/.bin/vite build:*)",
       "Bash(aws s3 sync:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(dir:*)"
     ]
   }
 }

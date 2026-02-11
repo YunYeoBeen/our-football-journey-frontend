@@ -29,23 +29,26 @@ messaging.onBackgroundMessage((payload) => {
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// 알림 클릭 처리
+// 알림 클릭 처리 - 해당 게시글로 이동
 self.addEventListener('notificationclick', (event) => {
   console.log('Notification clicked:', event);
   event.notification.close();
 
-  // 앱으로 이동
+  const boardId = event.notification.data?.boardId;
+  const targetUrl = boardId ? `/home?boardId=${boardId}` : '/home';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 이미 열린 창이 있으면 포커스
+      // 이미 열린 창이 있으면 해당 URL로 이동 후 포커스
       for (const client of clientList) {
         if ('focus' in client) {
+          client.navigate(targetUrl);
           return client.focus();
         }
       }
       // 없으면 새 창 열기
       if (clients.openWindow) {
-        return clients.openWindow('/');
+        return clients.openWindow(targetUrl);
       }
     })
   );

@@ -156,7 +156,10 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       setCalendarHeight(monthHeight);
       setViewMode('month');
     }
-  }, [isDragging, calendarHeight, monthHeight]);
+    // 뷰 모드 전환 시 선택 날짜 초기화
+    setSelectedDate(null);
+    onDateSelect?.(null);
+  }, [isDragging, calendarHeight, monthHeight, onDateSelect]);
 
   // Touch handlers for drag handle
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -191,22 +194,26 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
 
   // Swipe gesture for week navigation (horizontal)
   const goToNextWeek = useCallback(() => {
+    setSelectedDate(null);
+    onDateSelect?.(null);
     if (activeWeekIndex < calendarWeeks.length - 1) {
       setActiveWeekIndex(prev => prev + 1);
     } else {
       setCurrentMonth(prev => prev.add(1, 'month'));
       setActiveWeekIndex(0);
     }
-  }, [activeWeekIndex, calendarWeeks.length]);
+  }, [activeWeekIndex, calendarWeeks.length, onDateSelect]);
 
   const goToPrevWeek = useCallback(() => {
+    setSelectedDate(null);
+    onDateSelect?.(null);
     if (activeWeekIndex > 0) {
       setActiveWeekIndex(prev => prev - 1);
     } else {
       setCurrentMonth(prev => prev.subtract(1, 'month'));
       setActiveWeekIndex(999);
     }
-  }, [activeWeekIndex]);
+  }, [activeWeekIndex, onDateSelect]);
 
   const horizontalSwipe = useSwipeGesture({
     onSwipeLeft: () => {
@@ -267,6 +274,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   useEffect(() => {
     const fetchCalendarEvents = async () => {
       setEventsLoading(true);
+      setCalendarEvents([]); // 이전 달 이벤트 즉시 제거
       try {
         const start = currentMonth.startOf('month').format('YYYY-MM-DDTHH:mm:ss');
         const end = currentMonth.endOf('month').format('YYYY-MM-DDTHH:mm:ss');
@@ -320,10 +328,14 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   }, [selectedDate, currentMonth, calendarWeeks]);
 
   const goToPrevMonth = () => {
+    setSelectedDate(null);
+    onDateSelect?.(null);
     setCurrentMonth(prev => prev.subtract(1, 'month'));
   };
 
   const goToNextMonth = () => {
+    setSelectedDate(null);
+    onDateSelect?.(null);
     setCurrentMonth(prev => prev.add(1, 'month'));
   };
 

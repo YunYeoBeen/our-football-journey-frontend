@@ -1,3 +1,5 @@
+import { authFetch } from './authFetch';
+
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/s3`;
 
 // 업로드용 Presigned URL 응답
@@ -12,7 +14,7 @@ export const s3Api = {
   // 업로드용 Presigned URL 발급
   async getPresignedUploadUrls(fileNames: string[], type: UploadType = 'BOARD'): Promise<PresignedUploadResponse[]> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/presigned/upload/${type}`, {
+    const response = await authFetch(`${API_BASE_URL}/presigned/upload/${type}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,7 +48,7 @@ export const s3Api = {
   // 단일 이미지 조회용 Presigned URL 발급
   async getPresignedViewUrl(key: string, type: UploadType = 'BOARD'): Promise<string> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/presigned/view/${type}?key=${encodeURIComponent(key)}`, {
+    const response = await authFetch(`${API_BASE_URL}/presigned/view/${type}?key=${encodeURIComponent(key)}`, {
       method: 'GET',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })
@@ -66,7 +68,7 @@ export const s3Api = {
     const token = localStorage.getItem('accessToken');
     // 각 key를 별도 파라미터로 전송 (Spring List 파싱 호환)
     const queryParams = keys.map(key => `keys=${encodeURIComponent(key)}`).join('&');
-    const response = await fetch(`${API_BASE_URL}/presigned/view-list?${queryParams}`, {
+    const response = await authFetch(`${API_BASE_URL}/presigned/view-list?${queryParams}`, {
       method: 'GET',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` })

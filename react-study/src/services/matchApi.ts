@@ -1,3 +1,5 @@
+import { authFetch } from './authFetch';
+
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/matches`;
 
 // 관람 상태
@@ -61,7 +63,7 @@ export const matchApi = {
   // 캘린더 조회 (start ~ end 기간)
   async getCalendar(start: string, end: string): Promise<CalendarResponseDto> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(
+    const response = await authFetch(
       `${API_BASE_URL}/calendar?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`,
       {
         method: 'GET',
@@ -84,7 +86,7 @@ export const matchApi = {
     status: MatchAttendanceStatus
   ): Promise<MatchAttendanceResponseDto> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/${matchId}/attendance`, {
+    const response = await authFetch(`${API_BASE_URL}/${matchId}/attendance`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -103,7 +105,7 @@ export const matchApi = {
   // 특정 날짜 경기 조회
   async getMatchByDate(date: string): Promise<MatchByDateResponseDto> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(
+    const response = await authFetch(
       `${API_BASE_URL}/date?date=${encodeURIComponent(date)}`,
       {
         method: 'GET',

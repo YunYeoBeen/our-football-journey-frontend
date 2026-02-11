@@ -1,4 +1,5 @@
 import { CategoryMap, WeatherMap } from '../types';
+import { authFetch } from './authFetch';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/board`;
 
@@ -112,7 +113,7 @@ export const boardApi = {
   // 게시물 생성
   async create(data: BoardCreateRequest): Promise<BoardResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/create`, {
+    const response = await authFetch(`${API_BASE_URL}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -134,7 +135,7 @@ export const boardApi = {
   // 전체 게시물 조회
   async getAllList(page: number = 0, size: number = 10): Promise<BoardListResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/all-list?page=${page}&size=${size}`, {
+    const response = await authFetch(`${API_BASE_URL}/all-list?page=${page}&size=${size}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -156,7 +157,7 @@ export const boardApi = {
   // 게시물 상세 조회
   async getDetail(boardId: number): Promise<BoardDetailResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/detail/${boardId}`, {
+    const response = await authFetch(`${API_BASE_URL}/detail/${boardId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -187,7 +188,7 @@ export const boardApi = {
       weather: data.weather ? (WeatherMap.toServer[data.weather] || data.weather) : undefined
     };
 
-    const response = await fetch(`${API_BASE_URL}/${boardId}`, {
+    const response = await authFetch(`${API_BASE_URL}/${boardId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -206,7 +207,7 @@ export const boardApi = {
   // 게시물 삭제
   async delete(boardId: number): Promise<BoardMutationResponse> {
     const token = localStorage.getItem('accessToken');
-    const response = await fetch(`${API_BASE_URL}/${boardId}`, {
+    const response = await authFetch(`${API_BASE_URL}/${boardId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -233,7 +234,7 @@ export const boardApi = {
     queryParams.append('page', String(params.page ?? 0));
     queryParams.append('size', String(params.size ?? 10));
 
-    const response = await fetch(`${API_BASE_URL}/search?${queryParams.toString()}`, {
+    const response = await authFetch(`${API_BASE_URL}/search?${queryParams.toString()}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
