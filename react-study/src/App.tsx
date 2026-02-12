@@ -68,7 +68,8 @@ function showNotificationToast(title: string, body: string, boardId?: string) {
   if (boardId) {
     toast.addEventListener('click', () => {
       overlay.remove();
-      window.location.href = `/home?boardId=${boardId}`;
+      // 포그라운드에서는 커스텀 이벤트로 바로 게시글 열기 (리로드 없이)
+      window.dispatchEvent(new CustomEvent('open-board', { detail: { boardId } }));
     });
   }
 
@@ -92,6 +93,28 @@ function showNotificationToast(title: string, body: string, boardId?: string) {
 
 function App() {
   const { user, login } = useAuthStore();
+
+  // 백그라운드 알림 클릭 시 boardId를 sessionStorage에 보존 (리다이렉트 사이클에서 URL 파라미터 유실 방지)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const boardId = params.get('boardId');
+    if (boardId) {
+      sessionStorage.setItem('pendingBoardId', boardId);
+    }
+  }, []);
+
+  // Service Worker에서 알림 클릭 시 postMessage로 전달받아 게시글 열기
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === 'NOTIFICATION_CLICK' && event.data?.boardId) {
+        window.dispatchEvent(new CustomEvent('open-board', { detail: { boardId: event.data.boardId } }));
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handler);
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handler);
+    };
+  }, []);
 
   // 페이지 새로고침 시 로그인 상태 복구
   useEffect(() => {
@@ -125,15 +148,16 @@ function App() {
     restoreSession();
   }, [user, login]);
 
-  // 포그라운드 FCM 메시지 수신
+  // 포그라운드 FCM 메시지 수신 (data-only 메시지)
   const handleForegroundMessage = useCallback(() => {
     const unsubscribe = onForegroundMessage((payload: unknown) => {
+      console.log('[FCM] foreground payload:', JSON.stringify(payload));
       const msg = payload as {
         notification?: { title?: string; body?: string };
-        data?: { boardId?: string };
+        data?: { title?: string; body?: string; boardId?: string };
       };
-      const title = msg.notification?.title || '새 알림';
-      const body = msg.notification?.body || '';
+      const title = msg.data?.title || msg.notification?.title || '새 알림';
+      const body = msg.data?.body || msg.notification?.body || '';
       const boardId = msg.data?.boardId;
       showNotificationToast(title, body, boardId);
     });

@@ -12,6 +12,8 @@ export interface BoardCreateRequest {
   content: string;
   imageKeys: string[];  // S3 이미지 키 배열
   weather: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface BoardResponse {
@@ -40,6 +42,8 @@ export interface BoardListItem {
   imageUrl?: string;
   weather?: string;
   writer?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface BoardListResponse {
@@ -80,6 +84,8 @@ export interface BoardDetailResponse {
   createdAt?: string;
   updatedAt?: string;
   commentList?: CommentResponse[];  // 댓글 목록
+  latitude?: number;
+  longitude?: number;
 }
 
 // 게시물 수정 요청
@@ -94,6 +100,8 @@ export interface BoardUpdateRequest {
   keepImageKeys?: string[];
   addImageFileNames?: string[];
   deleteImageKeys?: string[];
+  latitude?: number;
+  longitude?: number;
 }
 
 // 게시물 수정/삭제 응답
@@ -113,13 +121,20 @@ export const boardApi = {
   // 게시물 생성
   async create(data: BoardCreateRequest): Promise<BoardResponse> {
     const token = localStorage.getItem('accessToken');
+    const { latitude, longitude, ...rest } = data;
+    const body = {
+      ...rest,
+      ...(latitude != null && longitude != null && {
+        location: { latitude, longitude }
+      })
+    };
     const response = await authFetch(`${API_BASE_URL}/create`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
@@ -148,9 +163,14 @@ export const boardApi = {
     }
 
     const data = await response.json();
+    console.log('[boardApi.getAllList] raw first item:', JSON.stringify(data.content?.[0]?.location));
     return {
-      content: data.content,
-      hasNext: !data.last,  // Spring Slice의 last를 hasNext로 변환
+      content: data.content.map((item: any) => ({
+        ...item,
+        latitude: item.location?.latitude ?? null,
+        longitude: item.location?.longitude ?? null,
+      })),
+      hasNext: !data.last,
     };
   },
 
@@ -170,10 +190,13 @@ export const boardApi = {
     }
 
     const result = await response.json();
+    console.log('[boardApi.getDetail] raw location:', JSON.stringify(result.location));
     return {
       ...result,
       category: CategoryMap.toClient[result.category] || result.category,
-      weather: WeatherMap.toClient[result.weather] || result.weather
+      weather: WeatherMap.toClient[result.weather] || result.weather,
+      latitude: result.location?.latitude ?? null,
+      longitude: result.location?.longitude ?? null,
     };
   },
 
@@ -181,11 +204,15 @@ export const boardApi = {
   async update(boardId: number, data: BoardUpdateRequest): Promise<BoardMutationResponse> {
     const token = localStorage.getItem('accessToken');
 
-    // category와 weather를 서버 형식으로 변환
+    // category와 weather를 서버 형식으로 변환, location nested object 변환
+    const { latitude, longitude, ...rest } = data;
     const serverData = {
-      ...data,
+      ...rest,
       category: data.category ? (CategoryMap.toServer[data.category] || data.category) : undefined,
-      weather: data.weather ? (WeatherMap.toServer[data.weather] || data.weather) : undefined
+      weather: data.weather ? (WeatherMap.toServer[data.weather] || data.weather) : undefined,
+      ...(latitude != null && longitude != null && {
+        location: { latitude, longitude }
+      })
     };
 
     const response = await authFetch(`${API_BASE_URL}/${boardId}`, {
@@ -248,8 +275,12 @@ export const boardApi = {
 
     const data = await response.json();
     return {
-      content: data.content,
-      hasNext: !data.last,  // Spring Slice의 last를 hasNext로 변환
+      content: data.content.map((item: any) => ({
+        ...item,
+        latitude: item.location?.latitude ?? null,
+        longitude: item.location?.longitude ?? null,
+      })),
+      hasNext: !data.last,
     };
   }
 };

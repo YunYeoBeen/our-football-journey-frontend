@@ -10,6 +10,9 @@ import type { CommentResponseDto } from '../types';
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import { useAuthStore } from '../store/userAuthStore';
 import CommentModal from './comment/CommentModal';
+import NaverMapPickerModal from './NaverMapPickerModal';
+
+const NAVER_MAP_CLIENT_ID = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
 
 const compressionOptions = {
   maxSizeMB: 1,
@@ -75,6 +78,10 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   const [editForm, setEditForm] = useState({
     title: '', startDate: '', endDate: '', place: '', category: '', weather: '', content: '',
   });
+  const [editLocationCoords, setEditLocationCoords] = useState<{
+    latitude: number | null; longitude: number | null;
+  }>({ latitude: null, longitude: null });
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
   const [newImages, setNewImages] = useState<File[]>([]);
   const [newImagePreviews, setNewImagePreviews] = useState<string[]>([]);
   const [deletedImageKeys, setDeletedImageKeys] = useState<string[]>([]);
@@ -137,6 +144,10 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         category: CategoryMap.toClient[response.category] || response.category,
         weather: WeatherMap.toClient[response.weather] || response.weather,
         content: response.content,
+      });
+      setEditLocationCoords({
+        latitude: response.latitude ?? null,
+        longitude: response.longitude ?? null,
       });
       setDeletedImageKeys([]);
       setNewImages([]);
@@ -243,11 +254,15 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         keepImageKeys,
         addImageFileNames,
         deleteImageKeys: deletedImageKeys,
+        ...(editLocationCoords.latitude != null && editLocationCoords.longitude != null && {
+          latitude: editLocationCoords.latitude,
+          longitude: editLocationCoords.longitude,
+        }),
       });
 
       message.success('수정되었습니다!');
-      setIsEditMode(false);
       await fetchDetail(boardId);
+      setIsEditMode(false);
       if (onUpdated) await onUpdated();
     } catch {
       message.error('수정에 실패했습니다.');
@@ -451,6 +466,17 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       <p style={{ fontSize: 14, lineHeight: 1.6, color: styles.colors.textDark, margin: '12px 0 0 0', whiteSpace: 'pre-wrap' }}>
         {detail?.content}
       </p>
+      {/* Static Map */}
+      {detail?.latitude != null && detail?.longitude != null && NAVER_MAP_CLIENT_ID && (
+        <div style={{ marginTop: 12, borderRadius: 8, overflow: 'hidden', border: `1px solid ${styles.colors.gray200}` }}>
+          <img
+            src={`https://maps.apigw.ntruss.com/map-static/v2/raster-cors?w=600&h=200&scale=2&center=${detail.longitude},${detail.latitude}&level=16&markers=type:d|size:mid|pos:${detail.longitude}%20${detail.latitude}&X-NCP-APIGW-API-KEY-ID=${NAVER_MAP_CLIENT_ID}`}
+            alt="위치 지도"
+            style={{ width: '100%', height: 120, objectFit: 'cover', display: 'block' }}
+            loading="lazy"
+          />
+        </div>
+      )}
       {/* 수정/삭제 버튼 */}
       {!showDeleteConfirm ? (
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -542,8 +568,28 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       {/* Place */}
       <div style={{ marginBottom: 12 }}>
         <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500, marginBottom: 4, display: 'block' }}>장소</label>
-        <input type="text" value={editForm.place} onChange={(e) => setEditForm(prev => ({ ...prev, place: e.target.value }))}
-          style={{ width: '100%', padding: '8px 10px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box' }} />
+        <div style={{ display: 'flex', gap: 6 }}>
+          <input type="text" value={editForm.place} onChange={(e) => {
+            setEditForm(prev => ({ ...prev, place: e.target.value }));
+            if (editLocationCoords.latitude !== null) {
+              setEditLocationCoords({ latitude: null, longitude: null });
+            }
+          }}
+            style={{ flex: 1, padding: '8px 10px', border: `1px solid ${styles.colors.gray200}`, borderRadius: 6, fontSize: 14, outline: 'none', boxSizing: 'border-box', minWidth: 0 }} />
+          <button
+            type="button"
+            onClick={() => setIsMapPickerOpen(true)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4, padding: '8px 10px',
+              fontSize: 12, fontWeight: 600, color: styles.colors.primary,
+              backgroundColor: `${styles.colors.primary}15`, border: `1px solid ${styles.colors.primary}40`,
+              borderRadius: 6, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>location_on</span>
+            지도
+          </button>
+        </div>
       </div>
       {/* Category & Weather */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -661,6 +707,17 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
         currentUserName={currentUserName}
         onCommentsChange={handleCommentsChange}
         onClose={() => setCommentModalVisible(false)}
+      />
+
+      <NaverMapPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirm={(place, lat, lng) => {
+          setEditForm(prev => ({ ...prev, place }));
+          setEditLocationCoords({ latitude: lat, longitude: lng });
+        }}
+        initialLat={editLocationCoords.latitude ?? undefined}
+        initialLng={editLocationCoords.longitude ?? undefined}
       />
 
       <style>{`

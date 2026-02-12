@@ -59,17 +59,30 @@ const HomePage: React.FC = () => {
     }
   }, [location, navigate]);
 
-  // 알림 클릭으로 특정 게시글 열기 (URL ?boardId=xxx)
+  // 알림 클릭으로 특정 게시글 열기 (URL ?boardId=xxx 또는 sessionStorage)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const boardId = params.get('boardId');
+    const boardId = params.get('boardId') || sessionStorage.getItem('pendingBoardId');
     if (boardId) {
+      sessionStorage.removeItem('pendingBoardId');
       setSelectedBoardId(Number(boardId));
       setIsDetailModalVisible(true);
-      // URL에서 boardId 파라미터 제거
       navigate('/home', { replace: true });
     }
   }, [navigate]);
+
+  // 포그라운드 알림 토스트 클릭 시 게시글 열기 (커스텀 이벤트)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.boardId) {
+        setSelectedBoardId(Number(detail.boardId));
+        setIsDetailModalVisible(true);
+      }
+    };
+    window.addEventListener('open-board', handler);
+    return () => window.removeEventListener('open-board', handler);
+  }, []);
 
   // Load profile image from server on mount
   useEffect(() => {

@@ -152,14 +152,21 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     if ((calendarHeight ?? monthHeight) < threshold) {
       setCalendarHeight(weekHeight);
       setViewMode('week');
+      // 선택된 날짜 기준으로 주간 인덱스 설정 (없으면 오늘 기준)
+      const targetDate = selectedDate ? dayjs(selectedDate) : dayjs();
+      const weekIdx = calendarWeeks.findIndex(week =>
+        week.some(day => day && day.isSame(targetDate, 'day'))
+      );
+      if (weekIdx >= 0) {
+        setActiveWeekIndex(weekIdx);
+      }
     } else {
       setCalendarHeight(monthHeight);
       setViewMode('month');
+      setSelectedDate(null);
+      onDateSelect?.(null);
     }
-    // 뷰 모드 전환 시 선택 날짜 초기화
-    setSelectedDate(null);
-    onDateSelect?.(null);
-  }, [isDragging, calendarHeight, monthHeight, onDateSelect]);
+  }, [isDragging, calendarHeight, monthHeight, weekHeight, onDateSelect, selectedDate, calendarWeeks]);
 
   // Touch handlers for drag handle
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
@@ -310,8 +317,10 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return map;
   }, [calendarEvents]);
 
-  // Update activeWeekIndex when selectedDate or month changes
+  // Update activeWeekIndex when selectedDate or month changes (month mode only)
   useEffect(() => {
+    if (viewMode === 'week') return; // 주간 모드에서는 스와이프로 직접 제어
+
     const today = dayjs();
     const targetDate = selectedDate ? dayjs(selectedDate) : today;
 
@@ -325,7 +334,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     } else {
       setActiveWeekIndex(0);
     }
-  }, [selectedDate, currentMonth, calendarWeeks]);
+  }, [selectedDate, currentMonth, calendarWeeks, viewMode]);
 
   const goToPrevMonth = () => {
     setSelectedDate(null);

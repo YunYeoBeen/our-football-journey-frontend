@@ -6,6 +6,7 @@ import type { Memory } from '../types';
 import { CategoryMap, WeatherMap } from '../types';
 import { boardApi } from '../services/boardApi';
 import { s3Api } from '../services/s3Api';
+import NaverMapPickerModal from './NaverMapPickerModal';
 
 // 이미지 압축 옵션
 const compressionOptions = {
@@ -52,6 +53,11 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
+  const [locationCoords, setLocationCoords] = useState<{
+    latitude: number | null;
+    longitude: number | null;
+  }>({ latitude: null, longitude: null });
   const [formData, setFormData] = useState({
     title: '',
     location: '',
@@ -158,7 +164,11 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
         category: CategoryMap.toServer[formData.category] || 'DATE',
         content: formData.content,
         imageKeys: imageKeys,
-        weather: WeatherMap.toServer[formData.weather] || 'SUNNY'
+        weather: WeatherMap.toServer[formData.weather] || 'SUNNY',
+        ...(locationCoords.latitude != null && locationCoords.longitude != null && {
+          latitude: locationCoords.latitude,
+          longitude: locationCoords.longitude,
+        }),
       };
 
       await boardApi.create(boardData);
@@ -190,6 +200,7 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
     previewUrls.forEach(url => URL.revokeObjectURL(url));
     setSelectedFiles([]);
     setPreviewUrls([]);
+    setLocationCoords({ latitude: null, longitude: null });
     onClose();
   };
 
@@ -518,23 +529,57 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
               <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
                 장소 <span style={{ color: styles.colors.primary }}>*</span>
               </label>
-              <input
-                ref={locationInputRef}
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                placeholder="장소를 입력하세요"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  backgroundColor: 'white',
-                  border: `1px solid ${styles.colors.gray200}`,
-                  borderRadius: 6,
-                  outline: 'none',
-                  fontFamily: styles.fontFamily,
-                }}
-              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  ref={locationInputRef}
+                  type="text"
+                  value={formData.location}
+                  onChange={(e) => {
+                    setFormData({ ...formData, location: e.target.value });
+                    // 사용자가 직접 텍스트를 수정하면 좌표 초기화
+                    if (locationCoords.latitude !== null) {
+                      setLocationCoords({ latitude: null, longitude: null });
+                    }
+                  }}
+                  placeholder="장소를 입력하세요"
+                  style={{
+                    flex: 1,
+                    padding: '8px 12px',
+                    fontSize: 14,
+                    backgroundColor: 'white',
+                    border: `1px solid ${styles.colors.gray200}`,
+                    borderRadius: 6,
+                    outline: 'none',
+                    fontFamily: styles.fontFamily,
+                    minWidth: 0,
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsMapPickerOpen(true)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '8px 10px',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    color: styles.colors.primary,
+                    backgroundColor: `${styles.colors.primary}15`,
+                    border: `1px solid ${styles.colors.primary}40`,
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap',
+                    fontFamily: styles.fontFamily,
+                    transition: 'background-color 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${styles.colors.primary}25`}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = `${styles.colors.primary}15`}
+                >
+                  <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>location_on</span>
+                  지도
+                </button>
+              </div>
             </div>
           </div>
 
@@ -681,6 +726,18 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
           </button>
         </div>
       </div>
+
+      {/* 지도 선택 모달 */}
+      <NaverMapPickerModal
+        isOpen={isMapPickerOpen}
+        onClose={() => setIsMapPickerOpen(false)}
+        onConfirm={(place, lat, lng) => {
+          setFormData(prev => ({ ...prev, location: place }));
+          setLocationCoords({ latitude: lat, longitude: lng });
+        }}
+        initialLat={locationCoords.latitude ?? undefined}
+        initialLng={locationCoords.longitude ?? undefined}
+      />
 
       {/* Animation */}
       <style>{`

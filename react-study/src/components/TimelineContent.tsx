@@ -8,6 +8,8 @@ import 'dayjs/locale/ko';
 dayjs.extend(relativeTime);
 dayjs.locale('ko');
 
+const NAVER_MAP_CLIENT_ID = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
+
 // 사귀기 시작한 날짜
 const TOGETHER_SINCE = dayjs('2026-01-03');
 
@@ -662,6 +664,41 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
                       alt={item.title}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />
+                  </div>
+                )}
+
+                {item.latitude != null && item.longitude != null && NAVER_MAP_CLIENT_ID && (
+                  <div style={{
+                    marginTop: item.thumbnailUrl ? 8 : 0,
+                    borderRadius: 8,
+                    overflow: 'hidden',
+                    border: `1px solid ${styles.colors.gray100}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    backgroundColor: styles.colors.gray50,
+                  }}>
+                    <img
+                      src={`https://maps.apigw.ntruss.com/map-static/v2/raster-cors?w=120&h=120&scale=2&center=${item.longitude},${item.latitude}&level=15&markers=type:d|size:tiny|pos:${item.longitude}%20${item.latitude}&X-NCP-APIGW-API-KEY-ID=${NAVER_MAP_CLIENT_ID}`}
+                      alt="위치"
+                      style={{ width: 56, height: 56, objectFit: 'cover', flexShrink: 0, display: 'block' }}
+                      loading="lazy"
+                    />
+                    {item.place && (
+                      <span style={{
+                        fontSize: 12,
+                        color: styles.colors.textMuted,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}>
+                        <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, flexShrink: 0 }}>location_on</span>
+                        {item.place}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
