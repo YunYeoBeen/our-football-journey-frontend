@@ -26,7 +26,6 @@ messaging.onBackgroundMessage((payload) => {
     body,
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    tag: boardId ? `board-${boardId}` : undefined,
     data: { title, body, boardId },
   });
 });

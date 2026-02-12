@@ -69,7 +69,6 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
       let fileToUpload: File | Blob = selectedFile;
       try {
         const compressed = await imageCompression(selectedFile, compressionOptions);
-        console.log(`프로필 압축: ${(selectedFile.size / 1024 / 1024).toFixed(2)}MB → ${(compressed.size / 1024 / 1024).toFixed(2)}MB`);
         fileToUpload = compressed;
       } catch {
         console.warn('압축 실패, 원본 사용');

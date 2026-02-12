@@ -163,7 +163,6 @@ export const boardApi = {
     }
 
     const data = await response.json();
-    console.log('[boardApi.getAllList] raw first item:', JSON.stringify(data.content?.[0]?.location));
     return {
       content: data.content.map((item: any) => ({
         ...item,
@@ -190,7 +189,6 @@ export const boardApi = {
     }
 
     const result = await response.json();
-    console.log('[boardApi.getDetail] raw location:', JSON.stringify(result.location));
     return {
       ...result,
       category: CategoryMap.toClient[result.category] || result.category,
@@ -204,15 +202,11 @@ export const boardApi = {
   async update(boardId: number, data: BoardUpdateRequest): Promise<BoardMutationResponse> {
     const token = localStorage.getItem('accessToken');
 
-    // category와 weather를 서버 형식으로 변환, location nested object 변환
-    const { latitude, longitude, ...rest } = data;
+    // category와 weather를 서버 형식으로 변환
     const serverData = {
-      ...rest,
+      ...data,
       category: data.category ? (CategoryMap.toServer[data.category] || data.category) : undefined,
       weather: data.weather ? (WeatherMap.toServer[data.weather] || data.weather) : undefined,
-      ...(latitude != null && longitude != null && {
-        location: { latitude, longitude }
-      })
     };
 
     const response = await authFetch(`${API_BASE_URL}/${boardId}`, {
