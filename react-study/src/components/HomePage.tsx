@@ -8,6 +8,7 @@ import CalendarContent from './CalendarContent';
 import AddMemoryModal from './AddMemoryModal';
 import MemoryDetailModal from './MemoryDetailModal';
 import ProfileImageModal from './ProfileImageModal';
+import SpaceContent from './SpaceContent';
 import { boardApi } from '../services/boardApi';
 import type { BoardListItem } from '../services/boardApi';
 import { s3Api } from '../services/s3Api';
@@ -237,6 +238,8 @@ const HomePage: React.FC = () => {
             refreshKey={refreshKey}
           />
         );
+      case 'space':
+        return <SpaceContent />;
       default:
         return null;
     }

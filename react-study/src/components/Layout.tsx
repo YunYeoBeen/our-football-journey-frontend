@@ -14,7 +14,7 @@ const styles = {
   fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
-export type TabType = 'timeline' | 'calendar';
+export type TabType = 'timeline' | 'calendar' | 'space';
 
 interface LayoutProps {
   children: ReactNode;
@@ -44,6 +44,34 @@ const Layout: FC<LayoutProps> = ({
     logout();
     navigate('/');
   };
+
+  const navButton = (tab: TabType, icon: string, label: string) => (
+    <button
+      onClick={() => onTabChange(tab)}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 4,
+        background: 'none',
+        border: 'none',
+        cursor: 'pointer',
+        padding: 8,
+      }}
+    >
+      <span style={{
+        fontSize: 24,
+        color: activeTab === tab ? styles.colors.primary : styles.colors.gray400,
+        fontFamily: 'Material Symbols Outlined',
+        fontVariationSettings: activeTab === tab ? "'FILL' 1" : "'FILL' 0",
+      }}>{icon}</span>
+      <span style={{
+        fontSize: 10,
+        fontWeight: 700,
+        color: activeTab === tab ? styles.colors.primary : styles.colors.gray400,
+      }}>{label}</span>
+    </button>
+  );
 
   return (
     <div style={{
@@ -182,32 +210,7 @@ const Layout: FC<LayoutProps> = ({
           justifyContent: 'space-around',
           alignItems: 'center',
         }}>
-          {/* Calendar Tab */}
-          <button
-            onClick={() => onTabChange('calendar')}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-            }}
-          >
-            <span style={{
-              fontSize: 24,
-              color: activeTab === 'calendar' ? styles.colors.primary : styles.colors.gray400,
-              fontFamily: 'Material Symbols Outlined',
-              fontVariationSettings: activeTab === 'calendar' ? "'FILL' 1" : "'FILL' 0",
-            }}>calendar_today</span>
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: activeTab === 'calendar' ? styles.colors.primary : styles.colors.gray400,
-            }}>Calendar</span>
-          </button>
+          {navButton('calendar', 'calendar_today', 'Calendar')}
 
           {/* Add Button */}
           <div style={{ position: 'relative', top: -24 }}>
@@ -234,32 +237,8 @@ const Layout: FC<LayoutProps> = ({
             </button>
           </div>
 
-          {/* Timeline Tab */}
-          <button
-            onClick={() => onTabChange('timeline')}
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 8,
-            }}
-          >
-            <span style={{
-              fontSize: 24,
-              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
-              fontFamily: 'Material Symbols Outlined',
-              fontVariationSettings: activeTab === 'timeline' ? "'FILL' 1" : "'FILL' 0",
-            }}>auto_awesome_motion</span>
-            <span style={{
-              fontSize: 10,
-              fontWeight: 700,
-              color: activeTab === 'timeline' ? styles.colors.primary : styles.colors.gray400,
-            }}>Timeline</span>
-          </button>
+          {navButton('timeline', 'auto_awesome_motion', 'Timeline')}
+          {navButton('space', 'edit_note', 'Space')}
         </div>
       </nav>
     </div>

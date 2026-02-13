@@ -151,7 +151,6 @@ function App() {
   // 포그라운드 FCM 메시지 수신 (data-only 메시지)
   const handleForegroundMessage = useCallback(() => {
     const unsubscribe = onForegroundMessage((payload: unknown) => {
-      console.log('[FCM] foreground payload:', JSON.stringify(payload));
       const msg = payload as {
         notification?: { title?: string; body?: string };
         data?: { title?: string; body?: string; boardId?: string };
