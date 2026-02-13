@@ -101,6 +101,7 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
   onLoadMore,
   profileImageUrl,
 }) => {
+  console.log('[TimelineContent] items.length:', items.length, 'loading:', loading);
   const daysTogether = calculateDaysTogether();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);

@@ -130,10 +130,12 @@ const HomePage: React.FC = () => {
 
       while (hasMore) {
         const response = await boardApi.getAllList(pageNum, 50);
+        console.log(`[fetchAllItems] page=${pageNum}, content.length=${response.content.length}, hasNext=${response.hasNext}`);
         allItems = [...allItems, ...response.content];
         hasMore = response.hasNext;
         pageNum++;
       }
+      console.log('[fetchAllItems] 총 아이템 수:', allItems.length);
 
       const itemsWithKeys = allItems.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
@@ -165,9 +167,10 @@ const HomePage: React.FC = () => {
         thumbnailUrl: item.thumbnail ? (urlMap[item.thumbnail] || thumbnailCache.get(item.thumbnail)) : undefined
       }));
 
+      console.log('[fetchAllItems] setItems 호출, 아이템 수:', itemsWithUrls.length);
       setItems(itemsWithUrls);
-    } catch {
-      // 게시물 조회 실패
+    } catch (error) {
+      console.error('fetchAllItems 실패:', error);
     } finally {
       setLoading(false);
     }
