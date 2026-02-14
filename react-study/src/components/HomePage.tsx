@@ -137,38 +137,48 @@ const HomePage: React.FC = () => {
       }
       console.log('[fetchAllItems] 총 아이템 수:', allItems.length);
 
+      // 아이템을 먼저 세팅 (썸네일 URL 실패해도 게시글은 표시)
+      const urlMap: Record<string, string> = {};
       const itemsWithKeys = allItems.filter(
         (item): item is BoardListItem & { thumbnail: string } => item.thumbnail !== null
       );
-      const urlMap: Record<string, string> = {};
 
-      if (itemsWithKeys.length > 0) {
-        const keysToFetch = itemsWithKeys
-          .filter(item => !thumbnailCache.has(item.thumbnail))
-          .map(item => item.thumbnail);
-
-        if (keysToFetch.length > 0) {
-          const urls = await s3Api.getPresignedViewUrls(keysToFetch);
-          keysToFetch.forEach((key, idx) => {
-            thumbnailCache.set(key, urls[idx]);
-            urlMap[key] = urls[idx];
-          });
+      // 캐시된 URL 먼저 적용
+      itemsWithKeys.forEach(item => {
+        if (thumbnailCache.has(item.thumbnail)) {
+          urlMap[item.thumbnail] = thumbnailCache.get(item.thumbnail)!;
         }
-
-        itemsWithKeys.forEach(item => {
-          if (thumbnailCache.has(item.thumbnail)) {
-            urlMap[item.thumbnail] = thumbnailCache.get(item.thumbnail)!;
-          }
-        });
-      }
+      });
 
       const itemsWithUrls: BoardItemWithUrl[] = allItems.map(item => ({
         ...item,
         thumbnailUrl: item.thumbnail ? (urlMap[item.thumbnail] || thumbnailCache.get(item.thumbnail)) : undefined
       }));
 
-      console.log('[fetchAllItems] setItems 호출, 아이템 수:', itemsWithUrls.length);
       setItems(itemsWithUrls);
+
+      // Presigned URL을 개별 호출로 가져옴 (배치 endpoint가 CloudFront에서 실패하므로)
+      const keysToFetch = itemsWithKeys
+        .filter(item => !thumbnailCache.has(item.thumbnail))
+        .map(item => item.thumbnail);
+
+      if (keysToFetch.length > 0) {
+        const results = await Promise.allSettled(
+          keysToFetch.map(key => s3Api.getPresignedViewUrl(key, 'BOARD'))
+        );
+        results.forEach((result, idx) => {
+          if (result.status === 'fulfilled') {
+            thumbnailCache.set(keysToFetch[idx], result.value);
+            urlMap[keysToFetch[idx]] = result.value;
+          }
+        });
+
+        // URL이 추가되면 아이템 다시 업데이트
+        setItems(allItems.map(item => ({
+          ...item,
+          thumbnailUrl: item.thumbnail ? (urlMap[item.thumbnail] || thumbnailCache.get(item.thumbnail)) : undefined
+        })));
+      }
     } catch (error) {
       console.error('fetchAllItems 실패:', error);
     } finally {
