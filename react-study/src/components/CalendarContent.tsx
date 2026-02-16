@@ -367,7 +367,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         <div className="calendar-day-dots">
           {hasBoard && <div className="calendar-day-dot bg-primary" />}
           {hasMatch && matchEvent?.attendances?.map((person, i) => (
-            <div key={i} className="calendar-day-dot" style={{ backgroundColor: getStatusColor(person.status) }} />
+            <div key={i} className="calendar-day-dot" style={{ backgroundColor: getStatusColor(person.status ?? undefined) }} />
           ))}
         </div>
       </div>
@@ -419,7 +419,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             <p className="calendar-event-attendances">
               {event.attendances.map((person, i) => {
                 const label = person.status === 'ATTENDING' ? '직관' : person.status === 'NOT_ATTENDING' ? '불참' : person.status === 'TV' ? 'TV' : '미정';
-                const color = getStatusColor(person.status);
+                const color = getStatusColor(person.status ?? undefined);
                 return (
                   <span key={i} className="calendar-event-attendance-item">
                     {i > 0 && <span className="calendar-event-attendance-separator">/</span>}
