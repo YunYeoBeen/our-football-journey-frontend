@@ -64,6 +64,7 @@ export interface BoardSearchParams {
 export interface CommentResponse {
   commentId: number;
   userName: string;
+  profileUrl?: string;  // S3 key for profile image
   content: string;
   createdAt: string;
   childCount: number;  // 대댓글 수

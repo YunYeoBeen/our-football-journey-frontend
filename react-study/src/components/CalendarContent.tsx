@@ -5,6 +5,7 @@ import type { CalendarEventDto, MatchAttendanceStatus } from '../services/matchA
 import { useSwipeGesture } from '../hooks/useSwipeGesture';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
+import '../styles/CalendarContent.css';
 
 dayjs.locale('ko');
 
@@ -13,12 +14,7 @@ const colors = {
   ulsanBlue: '#004A9F',
   attending: '#22c55e',
   notAttending: '#ef4444',
-  tv: '#8b5cf6',  // 보라색 (TV 시청)
-  textDark: '#181110',
-  textMuted: '#8d645e',
-  gray100: '#f1f1f1',
-  gray200: '#e5e7eb',
-  gray400: '#9ca3af',
+  tv: '#8b5cf6',
 };
 
 interface BoardItemWithUrl extends BoardListItem {
@@ -30,7 +26,7 @@ interface CalendarContentProps {
   loading: boolean;
   onItemClick: (boardId: number) => void;
   onDateSelect?: (date: string | null) => void;
-  refreshKey?: number;  // Increment to trigger refetch
+  refreshKey?: number;
 }
 
 type ViewMode = 'month' | 'week';
@@ -50,11 +46,9 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   const [attendanceUpdating, setAttendanceUpdating] = useState(false);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // View mode state
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [activeWeekIndex, setActiveWeekIndex] = useState(0);
 
-  // Drag handle state for resizing
   const [isDragging, setIsDragging] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
   const dragStartY = useRef(0);
@@ -62,7 +56,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   const gridRef = useRef<HTMLDivElement>(null);
   const [measuredWeekHeight, setMeasuredWeekHeight] = useState(52);
 
-  // Generate weeks array
   const calendarWeeks = useMemo(() => {
     const startOfMonth = currentMonth.startOf('month');
     const endOfMonth = currentMonth.endOf('month');
@@ -70,16 +63,9 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     const daysInMonth = endOfMonth.date();
 
     const days: (dayjs.Dayjs | null)[] = [];
-
-    for (let i = 0; i < startDay; i++) {
-      days.push(null);
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(currentMonth.date(i));
-    }
-    while (days.length % 7 !== 0) {
-      days.push(null);
-    }
+    for (let i = 0; i < startDay; i++) days.push(null);
+    for (let i = 1; i <= daysInMonth; i++) days.push(currentMonth.date(i));
+    while (days.length % 7 !== 0) days.push(null);
 
     const weeks: (dayjs.Dayjs | null)[][] = [];
     for (let i = 0; i < days.length; i += 7) {
@@ -88,7 +74,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return weeks;
   }, [currentMonth]);
 
-  // Measure actual grid height with ResizeObserver
   useEffect(() => {
     const measureGrid = () => {
       if (gridRef.current && calendarWeeks.length > 0) {
@@ -99,38 +84,27 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         }
       }
     };
-
-    // Initial measure after render
     requestAnimationFrame(measureGrid);
-
-    // Observe size changes
     const observer = new ResizeObserver(measureGrid);
-    if (gridRef.current) {
-      observer.observe(gridRef.current);
-    }
-
+    if (gridRef.current) observer.observe(gridRef.current);
     return () => observer.disconnect();
   }, [calendarWeeks.length, measuredWeekHeight]);
 
-  // Grid heights - use measured height
   const weekHeight = measuredWeekHeight;
   const monthHeight = calendarWeeks.length * weekHeight;
 
-  // Initialize calendar height
   useEffect(() => {
     if (calendarHeight === null) {
       setCalendarHeight(viewMode === 'month' ? monthHeight : weekHeight);
     }
   }, [calendarHeight, viewMode, monthHeight, weekHeight]);
 
-  // Update height when month changes
   useEffect(() => {
     if (viewMode === 'month' && !isDragging) {
       setCalendarHeight(monthHeight);
     }
   }, [monthHeight, viewMode, isDragging]);
 
-  // Drag handlers
   const handleDragStart = useCallback((clientY: number) => {
     setIsDragging(true);
     dragStartY.current = clientY;
@@ -142,7 +116,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     const deltaY = clientY - dragStartY.current;
     const newHeight = Math.max(weekHeight, Math.min(monthHeight, startHeight.current + deltaY));
     setCalendarHeight(newHeight);
-  }, [isDragging, monthHeight]);
+  }, [isDragging, monthHeight, weekHeight]);
 
   const handleDragEnd = useCallback(() => {
     if (!isDragging) return;
@@ -152,14 +126,11 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     if ((calendarHeight ?? monthHeight) < threshold) {
       setCalendarHeight(weekHeight);
       setViewMode('week');
-      // 선택된 날짜 기준으로 주간 인덱스 설정 (없으면 오늘 기준)
       const targetDate = selectedDate ? dayjs(selectedDate) : dayjs();
       const weekIdx = calendarWeeks.findIndex(week =>
         week.some(day => day && day.isSame(targetDate, 'day'))
       );
-      if (weekIdx >= 0) {
-        setActiveWeekIndex(weekIdx);
-      }
+      if (weekIdx >= 0) setActiveWeekIndex(weekIdx);
     } else {
       setCalendarHeight(monthHeight);
       setViewMode('month');
@@ -168,24 +139,10 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     }
   }, [isDragging, calendarHeight, monthHeight, weekHeight, onDateSelect, selectedDate, calendarWeeks]);
 
-  // Touch handlers for drag handle
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    handleDragStart(e.touches[0].clientY);
-  }, [handleDragStart]);
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    handleDragMove(e.touches[0].clientY);
-  }, [handleDragMove]);
-
-  const handleTouchEnd = useCallback(() => {
-    handleDragEnd();
-  }, [handleDragEnd]);
-
-  // Mouse handlers for drag handle
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    handleDragStart(e.clientY);
-  }, [handleDragStart]);
+  const handleTouchStart = useCallback((e: React.TouchEvent) => handleDragStart(e.touches[0].clientY), [handleDragStart]);
+  const handleTouchMove = useCallback((e: React.TouchEvent) => handleDragMove(e.touches[0].clientY), [handleDragMove]);
+  const handleTouchEnd = useCallback(() => handleDragEnd(), [handleDragEnd]);
+  const handleMouseDown = useCallback((e: React.MouseEvent) => { e.preventDefault(); handleDragStart(e.clientY); }, [handleDragStart]);
 
   useEffect(() => {
     if (!isDragging) return;
@@ -199,7 +156,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     };
   }, [isDragging, handleDragMove, handleDragEnd]);
 
-  // Swipe gesture for week navigation (horizontal)
   const goToNextWeek = useCallback(() => {
     setSelectedDate(null);
     onDateSelect?.(null);
@@ -222,21 +178,12 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     }
   }, [activeWeekIndex, onDateSelect]);
 
+  const goToPrevMonth = () => { setSelectedDate(null); onDateSelect?.(null); setCurrentMonth(prev => prev.subtract(1, 'month')); };
+  const goToNextMonth = () => { setSelectedDate(null); onDateSelect?.(null); setCurrentMonth(prev => prev.add(1, 'month')); };
+
   const horizontalSwipe = useSwipeGesture({
-    onSwipeLeft: () => {
-      if (viewMode === 'week') {
-        goToNextWeek();
-      } else {
-        goToNextMonth();
-      }
-    },
-    onSwipeRight: () => {
-      if (viewMode === 'week') {
-        goToPrevWeek();
-      } else {
-        goToPrevMonth();
-      }
-    },
+    onSwipeLeft: () => viewMode === 'week' ? goToNextWeek() : goToNextMonth(),
+    onSwipeRight: () => viewMode === 'week' ? goToPrevWeek() : goToPrevMonth(),
     threshold: 50,
   });
 
@@ -248,68 +195,46 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       setCalendarEvents(prev =>
         prev.map(event =>
           event.matchId === matchId
-            ? {
-                ...event,
-                attendanceStatus: status,
-                attendances: event.attendances?.map((person, i) =>
-                  i === 0 ? { ...person, status } : person
-                )
-              }
+            ? { ...event, attendanceStatus: status, attendances: event.attendances?.map((person, i) => i === 0 ? { ...person, status } : person) }
             : event
         )
       );
-    } catch {
-      // 참석 상태 업데이트 실패
-    } finally {
-      setAttendanceUpdating(false);
-      setHoveredMatchId(null);
-    }
+    } catch { /* 참석 상태 업데이트 실패 */ }
+    finally { setAttendanceUpdating(false); setHoveredMatchId(null); }
   };
 
   const handleMatchMouseEnter = (matchId: number) => {
     if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
     setHoveredMatchId(matchId);
   };
-
   const handleMatchMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
-      setHoveredMatchId(null);
-    }, 200);
+    hoverTimeoutRef.current = setTimeout(() => setHoveredMatchId(null), 200);
   };
 
-  // Fetch calendar events
   useEffect(() => {
     const fetchCalendarEvents = async () => {
       setEventsLoading(true);
-      setCalendarEvents([]); // 이전 달 이벤트 즉시 제거
+      setCalendarEvents([]);
       try {
         const start = currentMonth.startOf('month').format('YYYY-MM-DDTHH:mm:ss');
         const end = currentMonth.endOf('month').format('YYYY-MM-DDTHH:mm:ss');
         const response = await matchApi.getCalendar(start, end);
         setCalendarEvents(response.events);
-      } catch {
-        setCalendarEvents([]);
-      } finally {
-        setEventsLoading(false);
-      }
+      } catch { setCalendarEvents([]); }
+      finally { setEventsLoading(false); }
     };
     fetchCalendarEvents();
   }, [currentMonth, refreshKey]);
 
-  // Group events by date (considering date ranges)
   const eventsByDate = useMemo(() => {
     const map = new Map<string, CalendarEventDto[]>();
     calendarEvents.forEach(event => {
       const startDate = dayjs(event.startDate);
       const endDate = event.endDate ? dayjs(event.endDate) : startDate;
-
-      // Add event to all dates in the range
       let current = startDate;
       while (current.isBefore(endDate, 'day') || current.isSame(endDate, 'day')) {
         const dateKey = current.format('YYYY-MM-DD');
-        if (!map.has(dateKey)) {
-          map.set(dateKey, []);
-        }
+        if (!map.has(dateKey)) map.set(dateKey, []);
         map.get(dateKey)!.push(event);
         current = current.add(1, 'day');
       }
@@ -317,42 +242,20 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return map;
   }, [calendarEvents]);
 
-  // Update activeWeekIndex when selectedDate or month changes (month mode only)
   useEffect(() => {
-    if (viewMode === 'week') return; // 주간 모드에서는 스와이프로 직접 제어
-
+    if (viewMode === 'week') return;
     const today = dayjs();
     const targetDate = selectedDate ? dayjs(selectedDate) : today;
-
     if (targetDate.month() === currentMonth.month() && targetDate.year() === currentMonth.year()) {
-      const weekIdx = calendarWeeks.findIndex(week =>
-        week.some(day => day && day.isSame(targetDate, 'day'))
-      );
-      if (weekIdx >= 0) {
-        setActiveWeekIndex(weekIdx);
-      }
+      const weekIdx = calendarWeeks.findIndex(week => week.some(day => day && day.isSame(targetDate, 'day')));
+      if (weekIdx >= 0) setActiveWeekIndex(weekIdx);
     } else {
       setActiveWeekIndex(0);
     }
   }, [selectedDate, currentMonth, calendarWeeks, viewMode]);
 
-  const goToPrevMonth = () => {
-    setSelectedDate(null);
-    onDateSelect?.(null);
-    setCurrentMonth(prev => prev.subtract(1, 'month'));
-  };
-
-  const goToNextMonth = () => {
-    setSelectedDate(null);
-    onDateSelect?.(null);
-    setCurrentMonth(prev => prev.add(1, 'month'));
-  };
-
-  // Clamp activeWeekIndex when weeks change
   useEffect(() => {
-    if (activeWeekIndex >= calendarWeeks.length) {
-      setActiveWeekIndex(Math.max(0, calendarWeeks.length - 1));
-    }
+    if (activeWeekIndex >= calendarWeeks.length) setActiveWeekIndex(Math.max(0, calendarWeeks.length - 1));
   }, [calendarWeeks.length, activeWeekIndex]);
 
   const handleDateClick = (dateKey: string) => {
@@ -361,28 +264,16 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     onDateSelect?.(newSelected);
   };
 
-  // Format date range for display
   const formatEventDateRange = (startDateStr: string, endDateStr?: string): string => {
     const startDate = dayjs(startDateStr);
     const endDate = endDateStr ? dayjs(endDateStr) : null;
-
-    // Single day or no end date
-    if (!endDate || startDate.isSame(endDate, 'day')) {
-      return startDate.format('M월 D일 (ddd)');
-    }
-
-    // Same month: "1월 15-17일"
-    if (startDate.isSame(endDate, 'month')) {
-      return `${startDate.format('M월 D')}-${endDate.format('D일 (ddd)')}`;
-    }
-
-    // Different month: "1월 30일 - 2월 2일"
+    if (!endDate || startDate.isSame(endDate, 'day')) return startDate.format('M월 D일 (ddd)');
+    if (startDate.isSame(endDate, 'month')) return `${startDate.format('M월 D')}-${endDate.format('D일 (ddd)')}`;
     return `${startDate.format('M월 D일')} - ${endDate.format('M월 D일 (ddd)')}`;
   };
 
   const today = dayjs();
 
-  // Events for the selected date (week view detail panel)
   const selectedDayEvents = useMemo(() => {
     if (!selectedDate) return [];
     return calendarEvents
@@ -396,29 +287,23 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
       .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, selectedDate]);
 
-  // Events for the current week (week view)
   const weekEvents = useMemo(() => {
     const currentWeek = calendarWeeks[activeWeekIndex];
     if (!currentWeek) return [];
-
     const weekDays = currentWeek.filter((day): day is dayjs.Dayjs => day !== null);
     if (weekDays.length === 0) return [];
-
     const weekStart = weekDays[0];
     const weekEnd = weekDays[weekDays.length - 1];
-
     return calendarEvents
       .filter(e => {
         const eventStart = dayjs(e.startDate);
         const eventEnd = e.endDate ? dayjs(e.endDate) : eventStart;
-        // Event overlaps with week if: eventStart <= weekEnd AND eventEnd >= weekStart
         return (eventStart.isBefore(weekEnd, 'day') || eventStart.isSame(weekEnd, 'day')) &&
                (eventEnd.isAfter(weekStart, 'day') || eventEnd.isSame(weekStart, 'day'));
       })
       .sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, calendarWeeks, activeWeekIndex]);
 
-  // Events list for month view (all or filtered)
   const sortedEvents = useMemo(() => {
     const filtered = selectedDate
       ? calendarEvents.filter(e => {
@@ -432,11 +317,15 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return [...filtered].sort((a, b) => dayjs(a.startDate).diff(dayjs(b.startDate)));
   }, [calendarEvents, selectedDate]);
 
-  // Render a single day cell
+  const getStatusColor = (status?: MatchAttendanceStatus) => {
+    if (status === 'ATTENDING') return colors.attending;
+    if (status === 'NOT_ATTENDING') return colors.notAttending;
+    if (status === 'TV') return colors.tv;
+    return colors.ulsanBlue;
+  };
+
   const renderDayCell = (day: dayjs.Dayjs | null, index: number) => {
-    if (!day) {
-      return <div key={`empty-${index}`} style={{ aspectRatio: '1' }} />;
-    }
+    if (!day) return <div key={`empty-${index}`} style={{ aspectRatio: '1' }} />;
 
     const dateKey = day.format('YYYY-MM-DD');
     const dayEvents = eventsByDate.get(dateKey) || [];
@@ -448,253 +337,94 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     const dayOfWeek = day.day();
     const isSelected = selectedDate === dateKey;
 
-    let bgColor = 'transparent';
+    let bgStyle: React.CSSProperties = {};
     if (hasBoard && hasMatch) {
-      bgColor = anyoneAttending
+      bgStyle.background = anyoneAttending
         ? `linear-gradient(135deg, ${colors.primary}20, ${colors.attending}20)`
         : `linear-gradient(135deg, ${colors.primary}20, ${colors.ulsanBlue}20)`;
     } else if (hasBoard) {
-      bgColor = `${colors.primary}15`;
+      bgStyle.backgroundColor = `${colors.primary}15`;
     } else if (hasMatch) {
-      bgColor = anyoneAttending ? `${colors.attending}15` : `${colors.ulsanBlue}15`;
+      bgStyle.backgroundColor = anyoneAttending ? `${colors.attending}15` : `${colors.ulsanBlue}15`;
     }
 
-    return (
-      <div
-        key={dateKey}
-        onClick={() => handleDateClick(dateKey)}
-        style={{
-          aspectRatio: '1',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          borderRadius: 8,
-          backgroundColor: bgColor.includes('gradient') ? undefined : bgColor,
-          background: bgColor.includes('gradient') ? bgColor : undefined,
-          border: isSelected ? `2px solid ${colors.ulsanBlue}` : isToday ? `2px solid ${colors.primary}` : 'none',
-          cursor: 'pointer',
-          position: 'relative',
-          transition: 'all 0.2s',
-          minHeight: 44,
-        }}
-      >
-        <span style={{
-          fontSize: 14,
-          fontWeight: isToday || hasBoard || hasMatch ? 600 : 400,
-          color: dayOfWeek === 0 ? '#ef4444' : dayOfWeek === 6 ? '#3b82f6' : colors.textDark,
-        }}>
-          {day.date()}
-        </span>
+    const cellClasses = [
+      'calendar-day-cell',
+      isSelected && 'calendar-day-cell--selected',
+      isToday && !isSelected && 'calendar-day-cell--today',
+    ].filter(Boolean).join(' ');
 
-        <div style={{
-          position: 'absolute',
-          bottom: 4,
-          display: 'flex',
-          gap: 2,
-        }}>
-          {hasBoard && (
-            <div style={{
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              backgroundColor: colors.primary,
-            }} />
-          )}
+    const numberClasses = [
+      'calendar-day-number',
+      (isToday || hasBoard || hasMatch) && 'calendar-day-number--bold',
+      dayOfWeek === 0 && 'calendar-day-number--sun',
+      dayOfWeek === 6 && 'calendar-day-number--sat',
+    ].filter(Boolean).join(' ');
+
+    return (
+      <div key={dateKey} onClick={() => handleDateClick(dateKey)} className={cellClasses} style={bgStyle}>
+        <span className={numberClasses}>{day.date()}</span>
+        <div className="calendar-day-dots">
+          {hasBoard && <div className="calendar-day-dot bg-primary" />}
           {hasMatch && matchEvent?.attendances?.map((person, i) => (
-            <div key={i} style={{
-              width: 5,
-              height: 5,
-              borderRadius: '50%',
-              backgroundColor: person.status === 'ATTENDING'
-                ? colors.attending
-                : person.status === 'NOT_ATTENDING'
-                  ? colors.notAttending
-                  : person.status === 'TV'
-                    ? colors.tv
-                    : colors.ulsanBlue,
-            }} />
+            <div key={i} className="calendar-day-dot" style={{ backgroundColor: getStatusColor(person.status) }} />
           ))}
         </div>
       </div>
     );
   };
 
-  // Render event card
   const renderEventCard = (event: CalendarEventDto, idx: number) => {
     if (event.type === 'BOARD') {
       const item = items.find(i => i.id === event.boardId);
       return (
-        <div
-          key={`board-${event.boardId}-${idx}`}
-          onClick={() => event.boardId && onItemClick(event.boardId)}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: 12,
-            backgroundColor: 'white',
-            borderRadius: 12,
-            marginBottom: 8,
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            borderLeft: `4px solid ${colors.primary}`,
-            transition: 'transform 0.2s',
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateX(4px)'}
-          onMouseLeave={(e) => e.currentTarget.style.transform = 'translateX(0)'}
-        >
+        <div key={`board-${event.boardId}-${idx}`} onClick={() => event.boardId && onItemClick(event.boardId)} className="calendar-event-card calendar-event-card--board">
           {item?.thumbnailUrl ? (
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: 8,
-              backgroundImage: `url("${item.thumbnailUrl}")`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              flexShrink: 0,
-            }} />
+            <div className="calendar-event-thumbnail" style={{ backgroundImage: `url("${item.thumbnailUrl}")` }} />
           ) : (
-            <div style={{
-              width: 48,
-              height: 48,
-              borderRadius: 8,
-              backgroundColor: `${colors.primary}20`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0,
-            }}>
-              <span style={{
-                fontSize: 20,
-                color: colors.primary,
-                fontFamily: 'Material Symbols Outlined',
-              }}>favorite</span>
+            <div className="calendar-event-thumbnail calendar-event-thumbnail--empty" style={{ backgroundColor: `${colors.primary}20` }}>
+              <span className="calendar-event-thumbnail-icon color-primary">favorite</span>
             </div>
           )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: colors.textDark,
-              margin: 0,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}>
-              {event.title}
-            </p>
-            <p style={{
-              fontSize: 12,
-              color: colors.textMuted,
-              margin: 0,
-            }}>
-              {formatEventDateRange(event.startDate, event.endDate)}
-            </p>
+          <div className="calendar-event-content">
+            <p className="calendar-event-title">{event.title}</p>
+            <p className="calendar-event-date">{formatEventDateRange(event.startDate, event.endDate)}</p>
           </div>
-          <span style={{
-            fontSize: 20,
-            color: colors.gray400,
-            fontFamily: 'Material Symbols Outlined',
-          }}>chevron_right</span>
+          <span className="calendar-event-arrow">chevron_right</span>
         </div>
       );
     }
 
-    // MATCH event
     const myStatus = event.attendanceStatus || event.attendances?.[0]?.status || undefined;
     const isHovered = hoveredMatchId === event.matchId;
-
-    const statusColor = myStatus === 'ATTENDING'
-      ? colors.attending
-      : myStatus === 'NOT_ATTENDING'
-        ? colors.notAttending
-        : myStatus === 'TV'
-          ? colors.tv
-          : colors.ulsanBlue;
-
-    const statusLabel = myStatus === 'ATTENDING' ? '직관'
-      : myStatus === 'NOT_ATTENDING' ? '불참'
-        : myStatus === 'TV' ? 'TV' : undefined;
-
-    const statusIcon = myStatus === 'ATTENDING' ? 'stadium'
-      : myStatus === 'NOT_ATTENDING' ? 'cancel'
-        : myStatus === 'TV' ? 'tv' : undefined;
+    const statusColor = getStatusColor(myStatus);
+    const statusLabel = myStatus === 'ATTENDING' ? '직관' : myStatus === 'NOT_ATTENDING' ? '불참' : myStatus === 'TV' ? 'TV' : undefined;
+    const statusIcon = myStatus === 'ATTENDING' ? 'stadium' : myStatus === 'NOT_ATTENDING' ? 'cancel' : myStatus === 'TV' ? 'tv' : undefined;
 
     return (
       <div
         key={`match-${event.matchId}-${idx}`}
         onMouseEnter={() => event.matchId && handleMatchMouseEnter(event.matchId)}
         onMouseLeave={handleMatchMouseLeave}
-        style={{
-          position: 'relative',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: 12,
-          backgroundColor: 'white',
-          borderRadius: 12,
-          marginBottom: 8,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-          borderLeft: `4px solid ${statusColor}`,
-          transition: 'box-shadow 0.2s',
-        }}
+        className="calendar-event-card calendar-event-card--match"
+        style={{ borderLeftColor: statusColor }}
       >
-        <div style={{
-          width: 48,
-          height: 48,
-          borderRadius: 8,
-          backgroundColor: `${statusColor}15`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}>
-          <span style={{
-            fontSize: 20,
-            color: statusColor,
-            fontFamily: 'Material Symbols Outlined',
-          }}>sports_soccer</span>
+        <div className="calendar-event-thumbnail calendar-event-thumbnail--empty" style={{ backgroundColor: `${statusColor}15` }}>
+          <span className="calendar-event-thumbnail-icon" style={{ color: statusColor }}>sports_soccer</span>
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{
-            fontSize: 14,
-            fontWeight: 600,
-            color: colors.textDark,
-            margin: 0,
-          }}>
-            {event.title}
-          </p>
-          <p style={{
-            fontSize: 12,
-            color: colors.textMuted,
-            margin: 0,
-          }}>
-            {dayjs(event.startDate).format('M월 D일 (ddd) HH:mm')}
-          </p>
+        <div className="calendar-event-content">
+          <p className="calendar-event-title">{event.title}</p>
+          <p className="calendar-event-date">{dayjs(event.startDate).format('M월 D일 (ddd) HH:mm')}</p>
           {event.attendances && event.attendances.length > 0 && (
-            <p style={{
-              fontSize: 11,
-              color: colors.textMuted,
-              margin: '3px 0 0 0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              flexWrap: 'wrap',
-            }}>
+            <p className="calendar-event-attendances">
               {event.attendances.map((person, i) => {
-                const label = person.status === 'ATTENDING' ? '직관'
-                  : person.status === 'NOT_ATTENDING' ? '불참'
-                    : person.status === 'TV' ? 'TV' : '미정';
-                const color = person.status === 'ATTENDING' ? colors.attending
-                  : person.status === 'NOT_ATTENDING' ? colors.notAttending
-                    : person.status === 'TV' ? colors.tv
-                      : colors.gray400;
+                const label = person.status === 'ATTENDING' ? '직관' : person.status === 'NOT_ATTENDING' ? '불참' : person.status === 'TV' ? 'TV' : '미정';
+                const color = getStatusColor(person.status);
                 return (
-                  <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                    {i > 0 && <span style={{ color: colors.gray400, margin: '0 2px' }}>/</span>}
-                    <span style={{ fontWeight: 600 }}>{person.name}</span>
-                    <span style={{ color, fontWeight: 600 }}>{label}</span>
+                  <span key={i} className="calendar-event-attendance-item">
+                    {i > 0 && <span className="calendar-event-attendance-separator">/</span>}
+                    <span className="calendar-event-attendance-name">{person.name}</span>
+                    <span className="calendar-event-attendance-status" style={{ color }}>{label}</span>
                   </span>
                 );
               })}
@@ -702,209 +432,73 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
           )}
         </div>
         {statusLabel && !isHovered && (
-          <div style={{
-            padding: '4px 8px',
-            borderRadius: 6,
-            backgroundColor: `${statusColor}15`,
-            fontSize: 11,
-            fontWeight: 600,
-            color: statusColor,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-          }}>
-            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>{statusIcon}</span>
+          <div className="calendar-status-badge" style={{ backgroundColor: `${statusColor}15`, color: statusColor }}>
+            <span className="calendar-status-badge-icon">{statusIcon}</span>
             {statusLabel}
           </div>
         )}
-
-        {/* Attendance hover popup */}
         {isHovered && event.matchId && (
-          <div
-            onMouseEnter={() => event.matchId && handleMatchMouseEnter(event.matchId)}
-            onMouseLeave={handleMatchMouseLeave}
-            style={{
-              position: 'absolute',
-              right: 8,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              display: 'flex',
-              gap: 6,
-              padding: '6px 8px',
-              backgroundColor: 'white',
-              borderRadius: 10,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-              border: `1px solid ${colors.gray200}`,
-              animation: 'fadeIn 0.15s ease',
-              zIndex: 10,
-            }}
-          >
-            <button
-              onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, 'ATTENDING'); }}
-              disabled={attendanceUpdating}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: '6px 10px',
-                border: 'none',
-                borderRadius: 8,
-                backgroundColor: myStatus === 'ATTENDING' ? `${colors.attending}20` : 'transparent',
-                cursor: attendanceUpdating ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => { if (!attendanceUpdating) e.currentTarget.style.backgroundColor = `${colors.attending}15`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = myStatus === 'ATTENDING' ? `${colors.attending}20` : 'transparent'; }}
-            >
-              <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', color: colors.attending }}>check_circle</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: colors.attending }}>참석</span>
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, 'NOT_ATTENDING'); }}
-              disabled={attendanceUpdating}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: '6px 10px',
-                border: 'none',
-                borderRadius: 8,
-                backgroundColor: myStatus === 'NOT_ATTENDING' ? `${colors.notAttending}20` : 'transparent',
-                cursor: attendanceUpdating ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => { if (!attendanceUpdating) e.currentTarget.style.backgroundColor = `${colors.notAttending}15`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = myStatus === 'NOT_ATTENDING' ? `${colors.notAttending}20` : 'transparent'; }}
-            >
-              <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', color: colors.notAttending }}>cancel</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: colors.notAttending }}>불참</span>
-            </button>
-            <button
-              onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, 'TV'); }}
-              disabled={attendanceUpdating}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                padding: '6px 10px',
-                border: 'none',
-                borderRadius: 8,
-                backgroundColor: myStatus === 'TV' ? `${colors.tv}20` : 'transparent',
-                cursor: attendanceUpdating ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.15s',
-              }}
-              onMouseEnter={(e) => { if (!attendanceUpdating) e.currentTarget.style.backgroundColor = `${colors.tv}15`; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = myStatus === 'TV' ? `${colors.tv}20` : 'transparent'; }}
-            >
-              <span style={{ fontSize: 18, fontFamily: 'Material Symbols Outlined', color: colors.tv }}>tv</span>
-              <span style={{ fontSize: 10, fontWeight: 600, color: colors.tv }}>TV</span>
-            </button>
+          <div className="calendar-attendance-popup" onMouseEnter={() => event.matchId && handleMatchMouseEnter(event.matchId)} onMouseLeave={handleMatchMouseLeave}>
+            {(['ATTENDING', 'NOT_ATTENDING', 'TV'] as const).map(status => {
+              const btnColor = getStatusColor(status);
+              const btnLabel = status === 'ATTENDING' ? '참석' : status === 'NOT_ATTENDING' ? '불참' : 'TV';
+              const btnIcon = status === 'ATTENDING' ? 'check_circle' : status === 'NOT_ATTENDING' ? 'cancel' : 'tv';
+              return (
+                <button
+                  key={status}
+                  onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, status); }}
+                  disabled={attendanceUpdating}
+                  className="calendar-attendance-btn"
+                  style={{ backgroundColor: myStatus === status ? `${btnColor}20` : 'transparent' }}
+                >
+                  <span className="calendar-attendance-btn-icon" style={{ color: btnColor }}>{btnIcon}</span>
+                  <span className="calendar-attendance-btn-label" style={{ color: btnColor }}>{btnLabel}</span>
+                </button>
+              );
+            })}
           </div>
         )}
       </div>
     );
   };
 
+  const legendItems = [
+    { color: colors.primary, label: '데이트' },
+    { color: colors.ulsanBlue, label: '경기' },
+    { color: colors.attending, label: '직관' },
+    { color: colors.notAttending, label: '불참' },
+    { color: colors.tv, label: 'TV' },
+  ];
+
+  const dayHeaders = ['일', '월', '화', '수', '목', '금', '토'];
+
   return (
-    <div style={{ padding: 16, userSelect: 'none' }}>
+    <div className="calendar">
       {/* Legend */}
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        gap: 12,
-        marginBottom: 12,
-        flexWrap: 'wrap',
-      }}>
-        {[
-          { color: colors.primary, label: '데이트' },
-          { color: colors.ulsanBlue, label: '경기' },
-          { color: colors.attending, label: '직관' },
-          { color: colors.notAttending, label: '불참' },
-          { color: colors.tv, label: 'TV' },
-        ].map(({ color, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: color }} />
-            <span style={{ fontSize: 11, color: colors.textMuted }}>{label}</span>
+      <div className="calendar-legend">
+        {legendItems.map(({ color, label }) => (
+          <div key={label} className="calendar-legend-item">
+            <div className="calendar-legend-dot" style={{ backgroundColor: color }} />
+            <span className="calendar-legend-label">{label}</span>
           </div>
         ))}
       </div>
 
       {/* Month Navigation */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-        padding: '0 8px',
-      }}>
-        <button
-          onClick={goToPrevMonth}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 8,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span style={{
-            fontSize: 24,
-            color: colors.textMuted,
-            fontFamily: 'Material Symbols Outlined',
-          }}>chevron_left</span>
+      <div className="calendar-nav">
+        <button onClick={goToPrevMonth} className="calendar-nav-btn">
+          <span className="calendar-nav-btn-icon">chevron_left</span>
         </button>
-
-        <h2 style={{
-          fontSize: 18,
-          fontWeight: 700,
-          color: colors.textDark,
-          margin: 0,
-        }}>
-          {currentMonth.format('YYYY년 M월')}
-        </h2>
-
-        <button
-          onClick={goToNextMonth}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: 8,
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <span style={{
-            fontSize: 24,
-            color: colors.textMuted,
-            fontFamily: 'Material Symbols Outlined',
-          }}>chevron_right</span>
+        <h2 className="calendar-month-title">{currentMonth.format('YYYY년 M월')}</h2>
+        <button onClick={goToNextMonth} className="calendar-nav-btn">
+          <span className="calendar-nav-btn-icon">chevron_right</span>
         </button>
       </div>
 
       {/* Day Headers */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(7, 1fr)',
-        gap: 4,
-        marginBottom: 4,
-      }}>
-        {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => (
-          <div key={day} style={{
-            textAlign: 'center',
-            fontSize: 12,
-            fontWeight: 600,
-            color: idx === 0 ? '#ef4444' : idx === 6 ? '#3b82f6' : colors.gray400,
-            padding: '6px 0',
-          }}>
+      <div className="calendar-day-headers">
+        {dayHeaders.map((day, idx) => (
+          <div key={day} className={`calendar-day-header ${idx === 0 ? 'calendar-day-header--sun' : idx === 6 ? 'calendar-day-header--sat' : 'calendar-day-header--weekday'}`}>
             {day}
           </div>
         ))}
@@ -912,49 +506,18 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
 
       {/* Calendar Grid */}
       {(loading || eventsLoading) ? (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: 48,
-        }}>
-          <span style={{
-            fontSize: 32,
-            color: colors.primary,
-            fontFamily: 'Material Symbols Outlined',
-            animation: 'spin 1s linear infinite',
-          }}>progress_activity</span>
+        <div className="calendar-loading">
+          <span className="calendar-loading-icon">progress_activity</span>
         </div>
       ) : (
-        <div style={{ touchAction: 'none' }}>
-          <div style={{
-            overflow: 'hidden',
-            transition: isDragging ? 'none' : 'height 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-            height: (calendarHeight ?? monthHeight) + 16,
-            paddingBottom: 16,
-          }}>
+        <div className="calendar-grid-wrapper">
+          <div className={`calendar-grid-container ${!isDragging ? 'calendar-grid-container--animating' : ''}`} style={{ height: (calendarHeight ?? monthHeight) + 16 }}>
             {viewMode === 'month' ? (
-              <div
-                ref={gridRef}
-                {...horizontalSwipe}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: 4,
-                  touchAction: 'pan-y',
-                }}
-              >
+              <div ref={gridRef} {...horizontalSwipe} className="calendar-grid calendar-grid--month">
                 {calendarWeeks.flat().map((day, index) => renderDayCell(day, index))}
               </div>
             ) : (
-              <div
-                {...horizontalSwipe}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(7, 1fr)',
-                  gap: 4,
-                }}
-              >
+              <div {...horizontalSwipe} className="calendar-grid">
                 {calendarWeeks[activeWeekIndex]?.map((day, index) => renderDayCell(day, index))}
               </div>
             )}
@@ -966,89 +529,37 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             onTouchMove={handleTouchMove}
             onTouchEnd={handleTouchEnd}
             onMouseDown={handleMouseDown}
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '12px 0',
-              cursor: isDragging ? 'grabbing' : 'grab',
-              userSelect: 'none',
-              touchAction: 'none',
-            }}
+            className={`calendar-drag-handle ${isDragging ? 'calendar-drag-handle--grabbing' : 'calendar-drag-handle--grab'}`}
           >
-            <div style={{
-              width: 40,
-              height: 5,
-              borderRadius: 3,
-              backgroundColor: isDragging ? colors.primary : colors.gray200,
-              transition: 'background-color 0.15s',
-            }} />
+            <div className={`calendar-drag-bar ${isDragging ? 'calendar-drag-bar--active' : ''}`} />
           </div>
         </div>
       )}
 
       {/* Week View: Events Panel */}
       {viewMode === 'week' && (
-        <div style={{
-          marginTop: 8,
-          animation: 'slideUp 0.2s ease',
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-          }}>
-            <h3 style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: colors.textMuted,
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}>
-              <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>event</span>
+        <div className="calendar-events-panel calendar-events-panel--animated">
+          <div className="calendar-events-header">
+            <h3 className="calendar-events-title">
+              <span className="icon">event</span>
               {selectedDate
                 ? dayjs(selectedDate).format('M월 D일 (ddd)') + ' 일정'
                 : (() => {
-                const week = calendarWeeks[activeWeekIndex];
-                const firstDay = week?.find(d => d !== null);
-                const lastDay = [...(week || [])].reverse().find(d => d !== null);
-                if (firstDay && lastDay) {
-                  return `${firstDay.format('M/D')} - ${lastDay.format('M/D')} 일정`;
-                }
-                return '이번 주 일정';
-              })()}
+                    const week = calendarWeeks[activeWeekIndex];
+                    const firstDay = week?.find(d => d !== null);
+                    const lastDay = [...(week || [])].reverse().find(d => d !== null);
+                    return firstDay && lastDay ? `${firstDay.format('M/D')} - ${lastDay.format('M/D')} 일정` : '이번 주 일정';
+                  })()}
             </h3>
             {selectedDate && (
-              <button
-                onClick={() => { setSelectedDate(null); onDateSelect?.(null); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: colors.ulsanBlue,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
+              <button onClick={() => { setSelectedDate(null); onDateSelect?.(null); }} className="calendar-events-clear-btn">
                 전체 보기
-                <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>close</span>
+                <span className="icon">close</span>
               </button>
             )}
           </div>
           {(selectedDate ? selectedDayEvents : weekEvents).length === 0 ? (
-            <p style={{
-              textAlign: 'center',
-              color: colors.gray400,
-              fontSize: 14,
-              padding: 24,
-            }}>
-              {selectedDate ? '이 날 일정이 없습니다' : '이번 주 일정이 없습니다'}
-            </p>
+            <p className="calendar-events-empty">{selectedDate ? '이 날 일정이 없습니다' : '이번 주 일정이 없습니다'}</p>
           ) : (
             (selectedDate ? selectedDayEvents : weekEvents).map((event, idx) => renderEventCard(event, idx))
           )}
@@ -1057,77 +568,26 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
 
       {/* Month View: Events List */}
       {viewMode === 'month' && !loading && !eventsLoading && (
-        <div style={{ marginTop: 8 }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            marginBottom: 8,
-          }}>
-            <h3 style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: colors.textMuted,
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}>
-              <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>calendar_month</span>
-              {selectedDate
-                ? dayjs(selectedDate).format('M월 D일 (ddd)') + ' 일정'
-                : currentMonth.format('M월') + ' 일정'}
+        <div className="calendar-events-panel">
+          <div className="calendar-events-header">
+            <h3 className="calendar-events-title">
+              <span className="icon">calendar_month</span>
+              {selectedDate ? dayjs(selectedDate).format('M월 D일 (ddd)') + ' 일정' : currentMonth.format('M월') + ' 일정'}
             </h3>
             {selectedDate && (
-              <button
-                onClick={() => { setSelectedDate(null); onDateSelect?.(null); }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: colors.ulsanBlue,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
+              <button onClick={() => { setSelectedDate(null); onDateSelect?.(null); }} className="calendar-events-clear-btn">
                 전체 보기
-                <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>close</span>
+                <span className="icon">close</span>
               </button>
             )}
           </div>
-
           {sortedEvents.length === 0 ? (
-            <p style={{
-              textAlign: 'center',
-              color: colors.gray400,
-              fontSize: 14,
-              padding: 24,
-            }}>
-              이번 달 일정이 없습니다
-            </p>
+            <p className="calendar-events-empty">이번 달 일정이 없습니다</p>
           ) : (
             sortedEvents.map((event, idx) => renderEventCard(event, idx))
           )}
         </div>
       )}
-
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-50%) scale(0.9); }
-          to { opacity: 1; transform: translateY(-50%) scale(1); }
-        }
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
     </div>
   );
 };

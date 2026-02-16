@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { message } from 'antd';
 import { memoApi } from '../services/spaceApi';
+import type { MemoItem } from '../services/spaceApi';
 
 const colors = {
   primary: '#E91E8C',
@@ -22,16 +23,26 @@ const colorOptions: { value: MemoColor; hex: string; bg: string }[] = [
 
 interface Props {
   visible: boolean;
+  memo: MemoItem | null;
   onClose: () => void;
-  onCreated: () => Promise<void>;
+  onUpdated: () => Promise<void>;
 }
 
-export default function AddMemoModal({ visible, onClose, onCreated }: Props) {
+export default function EditMemoModal({ visible, memo, onClose, onUpdated }: Props) {
   const [content, setContent] = useState('');
   const [color, setColor] = useState<MemoColor>('PINK');
+  const [isPinned, setIsPinned] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (memo) {
+      setContent(memo.content);
+      setColor(memo.color);
+      setIsPinned(memo.isPinned);
+    }
+  }, [memo]);
+
+  if (!visible || !memo) return null;
 
   const handleSave = async () => {
     if (!content.trim()) {
@@ -40,22 +51,18 @@ export default function AddMemoModal({ visible, onClose, onCreated }: Props) {
     }
     setSaving(true);
     try {
-      await memoApi.create({ content: content.trim(), color, isPinned: false });
-      message.success('메모가 추가되었습니다!');
-      setContent('');
-      setColor('PINK');
+      await memoApi.update({ memoId: memo.memoId, content: content.trim(), color, isPinned });
+      message.success('메모가 수정되었습니다!');
       onClose();
-      await onCreated();
+      await onUpdated();
     } catch {
-      message.error('메모 추가에 실패했습니다.');
+      message.error('메모 수정에 실패했습니다.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleClose = () => {
-    setContent('');
-    setColor('PINK');
     onClose();
   };
 
@@ -85,7 +92,7 @@ export default function AddMemoModal({ visible, onClose, onCreated }: Props) {
 
         {/* Title */}
         <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: colors.textDark }}>
-          새 메모
+          메모 수정
         </h3>
 
         {/* Color picker */}
@@ -109,6 +116,62 @@ export default function AddMemoModal({ visible, onClose, onCreated }: Props) {
               />
             ))}
           </div>
+        </div>
+
+        {/* Pin Toggle */}
+        <div style={{ marginBottom: 16 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: colors.textMuted, display: 'block', marginBottom: 8 }}>
+            상단 고정
+          </label>
+          <button
+            onClick={() => setIsPinned(!isPinned)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              padding: '12px 16px',
+              borderRadius: 12,
+              border: `2px solid ${isPinned ? colors.primary : colors.gray200}`,
+              backgroundColor: isPinned ? '#fdf2f8' : colors.white,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              width: '100%',
+            }}
+          >
+            {/* Toggle Switch */}
+            <div style={{
+              width: 44,
+              height: 24,
+              borderRadius: 12,
+              backgroundColor: isPinned ? colors.primary : colors.gray200,
+              position: 'relative',
+              transition: 'background-color 0.2s',
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: 2,
+                left: isPinned ? 22 : 2,
+                width: 20,
+                height: 20,
+                borderRadius: '50%',
+                backgroundColor: colors.white,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                transition: 'left 0.2s',
+              }} />
+            </div>
+            <span style={{
+              fontSize: 14,
+              fontWeight: 600,
+              color: isPinned ? colors.primary : colors.textMuted,
+            }}>
+              {isPinned ? '고정됨' : '고정 안 함'}
+            </span>
+            <span className="icon" style={{
+              fontSize: 18,
+              color: isPinned ? colors.primary : colors.gray400,
+              marginLeft: 'auto',
+            }}>push_pin</span>
+          </button>
         </div>
 
         {/* Content textarea */}
@@ -156,7 +219,7 @@ export default function AddMemoModal({ visible, onClose, onCreated }: Props) {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? '추가 중...' : '추가'}
+            {saving ? '저장 중...' : '저장'}
           </button>
         </div>
       </div>

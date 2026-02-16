@@ -16,7 +16,6 @@ const messaging = firebase.messaging();
 
 // 백그라운드 메시지 수신 (data-only 메시지)
 messaging.onBackgroundMessage((payload) => {
-  console.log('[SW] Background message received:', JSON.stringify(payload));
 
   const title = payload.data?.title || '새 알림';
   const body = payload.data?.body || '';

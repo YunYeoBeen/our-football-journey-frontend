@@ -1,0 +1,222 @@
+/* Layout.css */
+
+.layout {
+  min-height: 100vh;
+  background-color: var(--color-bg-light);
+  font-family: var(--font-family);
+}
+
+/* Header */
+.layout-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background-color: rgba(253, 252, 252, 0.9);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.layout-header-inner {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  justify-content: space-between;
+  max-width: 448px;
+  margin: 0 auto;
+}
+
+.layout-logo {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-primary);
+  margin: 0;
+  cursor: pointer;
+  letter-spacing: -0.5px;
+}
+
+.layout-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.layout-profile {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid var(--color-primary);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.layout-profile:hover {
+  transform: scale(1.05);
+}
+
+.layout-profile--empty {
+  background-color: var(--color-gray-100);
+}
+
+.layout-profile-icon {
+  font-size: 18px;
+  color: var(--color-gray-400);
+  font-family: 'Material Symbols Outlined';
+}
+
+.layout-username {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.layout-logout-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+/* Main Content */
+.layout-main {
+  max-width: 448px;
+  margin: 0 auto;
+  padding-top: 72px;
+  padding-bottom: 80px;
+  min-height: 100vh;
+}
+
+/* Bottom Navigation */
+.layout-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--color-gray-100);
+  padding: 12px 24px;
+  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  z-index: 50;
+}
+
+.layout-nav-inner {
+  max-width: 448px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.layout-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.layout-nav-btn-icon {
+  font-size: 24px;
+  font-family: 'Material Symbols Outlined';
+  transition: color 0.2s;
+}
+
+.layout-nav-btn-icon--active {
+  color: var(--color-primary);
+  font-variation-settings: 'FILL' 1;
+}
+
+.layout-nav-btn-icon--inactive {
+  color: var(--color-gray-400);
+  font-variation-settings: 'FILL' 0;
+}
+
+.layout-nav-btn-label {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.layout-nav-btn-label--active {
+  color: var(--color-primary);
+}
+
+.layout-nav-btn-label--inactive {
+  color: var(--color-gray-400);
+}
+
+/* Add Button */
+.layout-add-btn-wrapper {
+  position: relative;
+  top: -24px;
+}
+
+.layout-add-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  border: 4px solid white;
+  box-shadow: 0 8px 24px rgba(255, 180, 168, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.layout-add-btn:hover {
+  transform: scale(1.05);
+}
+
+.layout-add-btn-icon {
+  font-size: 30px;
+  font-family: 'Material Symbols Outlined';
+}
+
+/* Floating Action Button */
+.layout-fab {
+  position: fixed;
+  bottom: 96px;
+  right: max(16px, calc((100vw - 448px) / 2 + 16px));
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  box-shadow: 0 8px 24px rgba(255, 180, 168, 0.5);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  transition: transform 0.2s;
+}
+
+.layout-fab:hover {
+  transform: scale(1.05);
+}
+
+.layout-fab-icon {
+  font-size: 28px;
+  font-family: 'Material Symbols Outlined';
+}

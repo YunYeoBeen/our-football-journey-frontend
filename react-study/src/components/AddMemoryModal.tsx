@@ -7,32 +7,12 @@ import { CategoryMap, WeatherMap } from '../types';
 import { boardApi } from '../services/boardApi';
 import { s3Api } from '../services/s3Api';
 import NaverMapPickerModal from './NaverMapPickerModal';
+import '../styles/AddMemoryModal.css';
 
-// 이미지 압축 옵션
 const compressionOptions = {
   maxSizeMB: 1,
   maxWidthOrHeight: 1920,
   useWebWorker: true,
-};
-
-// 공통 스타일
-const styles = {
-  colors: {
-    primary: '#ffb4a8',
-    backgroundLight: '#fdfcfc',
-    textDark: '#333333',
-    textMuted: '#666666',
-    textLight: '#999999',
-    border: '#e5e5e5',
-    gray50: '#f9fafb',
-    gray100: '#f3f4f6',
-    gray200: '#e5e7eb',
-    gray400: '#9ca3af',
-    gray500: '#6b7280',
-    gray700: '#374151',
-    gray800: '#1f2937',
-  },
-  fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
 };
 
 interface AddMemoryModalProps {
@@ -69,14 +49,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
     weather: '맑음' as Memory['weather']
   });
 
-  // Apply initialDate when modal opens
   useEffect(() => {
     if (visible && initialDate) {
-      setFormData(prev => ({
-        ...prev,
-        startDate: initialDate,
-        endDate: initialDate
-      }));
+      setFormData(prev => ({ ...prev, startDate: initialDate, endDate: initialDate }));
     }
   }, [visible, initialDate]);
 
@@ -101,56 +76,33 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    if (e.dataTransfer.files.length > 0) {
-      handleFilesSelect(e.dataTransfer.files);
-    }
+    if (e.dataTransfer.files.length > 0) handleFilesSelect(e.dataTransfer.files);
   };
 
   const handleSubmit = async () => {
-    if (!formData.title.trim()) {
-      message.warning('제목을 입력해주세요!');
-      titleInputRef.current?.focus();
-      return;
-    }
-    if (!formData.location.trim()) {
-      message.warning('장소를 입력해주세요!');
-      locationInputRef.current?.focus();
-      return;
-    }
-    if (!formData.content.trim()) {
-      message.warning('내용을 입력해주세요!');
-      contentInputRef.current?.focus();
-      return;
-    }
+    if (!formData.title.trim()) { message.warning('제목을 입력해주세요!'); titleInputRef.current?.focus(); return; }
+    if (!formData.location.trim()) { message.warning('장소를 입력해주세요!'); locationInputRef.current?.focus(); return; }
+    if (!formData.content.trim()) { message.warning('내용을 입력해주세요!'); contentInputRef.current?.focus(); return; }
 
     setIsSubmitting(true);
     try {
       const imageKeys: string[] = [];
 
-      // S3 presigned URL로 이미지 업로드 (다중) - 압축 후 업로드
       if (selectedFiles.length > 0) {
-        // 이미지 압축
         const compressedFiles = await Promise.all(
           selectedFiles.map(async (file) => {
-            try {
-              const compressed = await imageCompression(file, compressionOptions);
-              return compressed;
-            } catch {
-              console.warn(`압축 실패, 원본 사용: ${file.name}`);
-              return file;
-            }
+            try { return await imageCompression(file, compressionOptions); }
+            catch { console.warn(`압축 실패, 원본 사용: ${file.name}`); return file; }
           })
         );
 
         const presignedUrls = await s3Api.getPresignedUploadUrls(selectedFiles.map(f => f.name));
-
         await Promise.all(presignedUrls.map(async ({ uploadUrl, key }, idx) => {
           await s3Api.uploadToS3(uploadUrl, compressedFiles[idx]);
           imageKeys.push(key);
         }));
       }
 
-      // Validation: 종료 날짜가 시작 날짜보다 이전인지 확인
       if (!formData.isSingleDay && formData.endDate < formData.startDate) {
         message.warning('종료 날짜는 시작 날짜보다 이전일 수 없습니다!');
         return;
@@ -173,12 +125,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
 
       await boardApi.create(boardData);
       message.success('Memory saved!');
-      if (onCreated) {
-        await onCreated();
-      }
+      if (onCreated) await onCreated();
       handleClose();
     } catch (error) {
-      // 저장 실패
       console.error('게시글 생성 실패:', error);
       message.error('Failed to save. Please try again.');
     } finally {
@@ -188,14 +137,9 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
 
   const handleClose = () => {
     setFormData({
-      title: '',
-      location: '',
-      category: '데이트',
-      content: '',
-      startDate: dayjs().format('YYYY-MM-DD'),
-      endDate: dayjs().format('YYYY-MM-DD'),
-      isSingleDay: false,
-      weather: '맑음'
+      title: '', location: '', category: '데이트', content: '',
+      startDate: dayjs().format('YYYY-MM-DD'), endDate: dayjs().format('YYYY-MM-DD'),
+      isSingleDay: false, weather: '맑음'
     });
     previewUrls.forEach(url => URL.revokeObjectURL(url));
     setSelectedFiles([]);
@@ -207,210 +151,69 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
   if (!visible) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 16,
-        fontFamily: styles.fontFamily,
-      }}
-    >
-      {/* Backdrop */}
-      <div
-        onClick={handleClose}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.45)',
-          backdropFilter: 'blur(4px)',
-        }}
-      />
+    <div className="add-memory-overlay">
+      <div onClick={handleClose} className="add-memory-backdrop" />
 
-      {/* Modal */}
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 420,
-          backgroundColor: 'white',
-          borderRadius: 8,
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-          overflow: 'hidden',
-          animation: 'fadeIn 0.2s ease',
-        }}
-      >
+      <div className="add-memory-modal">
         {/* Header */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '16px 24px',
-            borderBottom: `1px solid ${styles.colors.gray100}`,
-          }}
-        >
-          <h2
-            style={{
-              fontSize: 16,
-              fontWeight: 600,
-              color: styles.colors.textDark,
-              margin: 0,
-            }}
-          >
-            Create New Memory
-          </h2>
-          <button
-            onClick={handleClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: styles.colors.gray400,
-              padding: 4,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'color 0.2s',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.color = styles.colors.gray700}
-            onMouseLeave={(e) => e.currentTarget.style.color = styles.colors.gray400}
-          >
-            <span style={{ fontSize: 20, fontFamily: 'Material Symbols Outlined' }}>close</span>
+        <div className="add-memory-header">
+          <h2 className="add-memory-title">Create New Memory</h2>
+          <button onClick={handleClose} className="add-memory-close-btn">
+            <span className="icon" style={{ fontSize: 20 }}>close</span>
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, maxHeight: '60vh', overflowY: 'auto' }}>
-          {/* Photo Upload Area */}
+        <div className="add-memory-content">
+          {/* Photo Upload */}
           <div>
-            {/* Preview Grid */}
             {previewUrls.length > 0 && (
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 8,
-                marginBottom: 8,
-              }}>
+              <div className="add-memory-preview-grid">
                 {previewUrls.map((url, idx) => (
-                  <div key={idx} style={{ position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden' }}>
-                    <img src={url} alt={`Preview ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    <button
-                      onClick={() => handleRemoveImage(idx)}
-                      style={{
-                        position: 'absolute',
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: '50%',
-                        border: 'none',
-                        backgroundColor: 'rgba(0,0,0,0.6)',
-                        color: 'white',
-                        fontSize: 12,
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        lineHeight: 1,
-                      }}
-                    >
-                      <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>close</span>
+                  <div key={idx} className="add-memory-preview-item">
+                    <img src={url} alt={`Preview ${idx + 1}`} className="add-memory-preview-image" />
+                    <button onClick={() => handleRemoveImage(idx)} className="add-memory-preview-remove-btn">
+                      <span className="icon" style={{ fontSize: 14 }}>close</span>
                     </button>
                   </div>
                 ))}
               </div>
             )}
 
-            {/* Upload zone (show only if under max) */}
             {selectedFiles.length < MAX_IMAGES && (
               <div
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={handleDrop}
-                style={{
-                  border: `2px dashed ${isDragging ? styles.colors.primary : styles.colors.gray200}`,
-                  borderRadius: 8,
-                  backgroundColor: isDragging ? `${styles.colors.primary}10` : styles.colors.gray50,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '16px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
+                className={`add-memory-upload-zone ${isDragging ? 'add-memory-upload-zone--dragging' : ''}`}
               >
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  backgroundColor: `${styles.colors.primary}1a`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 6,
-                }}>
-                  <span style={{ fontSize: 20, color: styles.colors.primary, fontFamily: 'Material Symbols Outlined' }}>
-                    add_photo_alternate
-                  </span>
+                <div className="add-memory-upload-icon-wrapper">
+                  <span className="add-memory-upload-icon">add_photo_alternate</span>
                 </div>
-                <p style={{ fontSize: 12, fontWeight: 500, color: styles.colors.gray700, margin: 0 }}>
-                  사진 추가 ({selectedFiles.length}/{MAX_IMAGES})
-                </p>
+                <p className="add-memory-upload-text">사진 추가 ({selectedFiles.length}/{MAX_IMAGES})</p>
               </div>
             )}
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => e.target.files && handleFilesSelect(e.target.files)}
-              style={{ display: 'none' }}
-            />
+            <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => e.target.files && handleFilesSelect(e.target.files)} style={{ display: 'none' }} />
           </div>
 
           {/* Title */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-              제목 <span style={{ color: styles.colors.primary }}>*</span>
-            </label>
+          <div className="add-memory-form-group">
+            <label className="add-memory-label">제목 <span className="add-memory-required">*</span></label>
             <input
               ref={titleInputRef}
               type="text"
               value={formData.title}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               placeholder="추억의 제목을 입력하세요"
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                backgroundColor: 'white',
-                border: `1px solid ${styles.colors.gray200}`,
-                borderRadius: 6,
-                outline: 'none',
-                fontFamily: styles.fontFamily,
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = styles.colors.primary;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${styles.colors.primary}30`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = styles.colors.gray200;
-                e.currentTarget.style.boxShadow = 'none';
-              }}
+              className="add-memory-input"
             />
           </div>
 
-          {/* Date Range & Location */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* 당일 체크박스 */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Date Range */}
+          <div className="add-memory-form-group">
+            <div className="add-memory-checkbox-row">
               <input
                 type="checkbox"
                 id="singleDay"
@@ -418,191 +221,68 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                 onChange={(e) => {
                   const isSingleDay = e.target.checked;
                   const today = dayjs().format('YYYY-MM-DD');
-                  setFormData({
-                    ...formData,
-                    isSingleDay,
-                    startDate: isSingleDay ? today : formData.startDate,
-                    endDate: isSingleDay ? today : formData.endDate
-                  });
+                  setFormData({ ...formData, isSingleDay, startDate: isSingleDay ? today : formData.startDate, endDate: isSingleDay ? today : formData.endDate });
                 }}
-                style={{
-                  width: 16,
-                  height: 16,
-                  cursor: 'pointer',
-                  accentColor: styles.colors.primary,
-                }}
+                className="add-memory-checkbox"
               />
-              <label
-                htmlFor="singleDay"
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: styles.colors.gray700,
-                  cursor: 'pointer',
-                  userSelect: 'none',
-                }}
-              >
-                당일
-              </label>
+              <label htmlFor="singleDay" className="add-memory-checkbox-label">당일</label>
             </div>
 
-            {/* 날짜 필드들 (당일이 아닐 때만 표시) */}
             {!formData.isSingleDay && (
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}>
-                {/* 시작 날짜 */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}>
-                  <label style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: styles.colors.gray500,
-                    minWidth: 60,
-                    flexShrink: 0,
-                  }}>
-                    시작
-                  </label>
+              <div className="add-memory-date-fields">
+                <div className="add-memory-date-row">
+                  <label className="add-memory-date-label">시작</label>
                   <input
                     type="date"
                     value={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      fontSize: 15,
-                      backgroundColor: 'white',
-                      border: `1px solid ${styles.colors.gray200}`,
-                      borderRadius: 8,
-                      outline: 'none',
-                      fontFamily: styles.fontFamily,
-                      boxSizing: 'border-box',
-                      minWidth: 0,
-                    }}
+                    className="add-memory-date-input"
                   />
                 </div>
-
-                {/* 끝 날짜 */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}>
-                  <label style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: styles.colors.gray500,
-                    minWidth: 60,
-                    flexShrink: 0,
-                  }}>
-                    종료
-                  </label>
+                <div className="add-memory-date-row">
+                  <label className="add-memory-date-label">종료</label>
                   <input
                     type="date"
                     value={formData.endDate}
                     min={formData.startDate}
                     onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                    style={{
-                      flex: 1,
-                      padding: '10px 12px',
-                      fontSize: 15,
-                      backgroundColor: 'white',
-                      border: `1px solid ${styles.colors.gray200}`,
-                      borderRadius: 8,
-                      outline: 'none',
-                      fontFamily: styles.fontFamily,
-                      boxSizing: 'border-box',
-                      minWidth: 0,
-                    }}
+                    className="add-memory-date-input"
                   />
                 </div>
               </div>
             )}
+          </div>
 
-            {/* 장소 */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                장소 <span style={{ color: styles.colors.primary }}>*</span>
-              </label>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <input
-                  ref={locationInputRef}
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => {
-                    setFormData({ ...formData, location: e.target.value });
-                    // 사용자가 직접 텍스트를 수정하면 좌표 초기화
-                    if (locationCoords.latitude !== null) {
-                      setLocationCoords({ latitude: null, longitude: null });
-                    }
-                  }}
-                  placeholder="장소를 입력하세요"
-                  style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    fontSize: 14,
-                    backgroundColor: 'white',
-                    border: `1px solid ${styles.colors.gray200}`,
-                    borderRadius: 6,
-                    outline: 'none',
-                    fontFamily: styles.fontFamily,
-                    minWidth: 0,
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setIsMapPickerOpen(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    padding: '8px 10px',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: styles.colors.primary,
-                    backgroundColor: `${styles.colors.primary}15`,
-                    border: `1px solid ${styles.colors.primary}40`,
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    fontFamily: styles.fontFamily,
-                    transition: 'background-color 0.2s',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${styles.colors.primary}25`}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = `${styles.colors.primary}15`}
-                >
-                  <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>location_on</span>
-                  지도
-                </button>
-              </div>
+          {/* Place */}
+          <div className="add-memory-form-group">
+            <label className="add-memory-label">장소 <span className="add-memory-required">*</span></label>
+            <div className="add-memory-place-row">
+              <input
+                ref={locationInputRef}
+                type="text"
+                value={formData.location}
+                onChange={(e) => {
+                  setFormData({ ...formData, location: e.target.value });
+                  if (locationCoords.latitude !== null) setLocationCoords({ latitude: null, longitude: null });
+                }}
+                placeholder="장소를 입력하세요"
+                className="add-memory-input"
+                style={{ flex: 1, minWidth: 0 }}
+              />
+              <button type="button" onClick={() => setIsMapPickerOpen(true)} className="add-memory-map-btn">
+                <span className="icon" style={{ fontSize: 16 }}>location_on</span>지도
+              </button>
             </div>
           </div>
 
-          {/* Category & Weather Row */}
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                Category
-              </label>
+          {/* Category & Weather */}
+          <div className="add-memory-row">
+            <div>
+              <label className="add-memory-label">Category</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as Memory['category'] })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  backgroundColor: 'white',
-                  border: `1px solid ${styles.colors.gray200}`,
-                  borderRadius: 6,
-                  outline: 'none',
-                  fontFamily: styles.fontFamily,
-                  cursor: 'pointer',
-                }}
+                className="add-memory-select"
               >
                 <option value="데이트">💕 데이트</option>
                 <option value="일상">📅 일상</option>
@@ -611,24 +291,12 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
                 <option value="축구">⚽ 축구</option>
               </select>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-                Weather
-              </label>
+            <div>
+              <label className="add-memory-label">Weather</label>
               <select
                 value={formData.weather}
                 onChange={(e) => setFormData({ ...formData, weather: e.target.value as Memory['weather'] })}
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  fontSize: 14,
-                  backgroundColor: 'white',
-                  border: `1px solid ${styles.colors.gray200}`,
-                  borderRadius: 6,
-                  outline: 'none',
-                  fontFamily: styles.fontFamily,
-                  cursor: 'pointer',
-                }}
+                className="add-memory-select"
               >
                 <option value="맑음">☀️ Sunny</option>
                 <option value="흐림">☁️ Cloudy</option>
@@ -639,95 +307,28 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
           </div>
 
           {/* Content */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: styles.colors.gray500 }}>
-              내용 <span style={{ color: styles.colors.primary }}>*</span>
-            </label>
+          <div className="add-memory-form-group">
+            <label className="add-memory-label">내용 <span className="add-memory-required">*</span></label>
             <textarea
               ref={contentInputRef}
               value={formData.content}
               onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               placeholder="추억을 기록하세요..."
               rows={3}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: 14,
-                backgroundColor: 'white',
-                border: `1px solid ${styles.colors.gray200}`,
-                borderRadius: 6,
-                outline: 'none',
-                resize: 'none',
-                fontFamily: styles.fontFamily,
-              }}
-              onFocus={(e) => {
-                e.currentTarget.style.borderColor = styles.colors.primary;
-                e.currentTarget.style.boxShadow = `0 0 0 3px ${styles.colors.primary}30`;
-              }}
-              onBlur={(e) => {
-                e.currentTarget.style.borderColor = styles.colors.gray200;
-                e.currentTarget.style.boxShadow = 'none';
-              }}
+              className="add-memory-textarea"
             />
           </div>
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            padding: '16px 24px',
-            backgroundColor: styles.colors.gray50,
-            borderTop: `1px solid ${styles.colors.gray100}`,
-            display: 'flex',
-            justifyContent: 'flex-end',
-            gap: 8,
-          }}
-        >
-          <button
-            onClick={handleClose}
-            style={{
-              padding: '8px 16px',
-              fontSize: 14,
-              fontWeight: 500,
-              color: styles.colors.gray700,
-              backgroundColor: 'white',
-              border: `1px solid ${styles.colors.gray200}`,
-              borderRadius: 6,
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              fontFamily: styles.fontFamily,
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = styles.colors.gray50}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting || !formData.content.trim()}
-            style={{
-              padding: '8px 24px',
-              fontSize: 14,
-              fontWeight: 500,
-              color: 'white',
-              backgroundColor: styles.colors.primary,
-              border: 'none',
-              borderRadius: 6,
-              cursor: (isSubmitting || !formData.content.trim()) ? 'not-allowed' : 'pointer',
-              transition: 'opacity 0.2s, transform 0.1s',
-              opacity: (isSubmitting || !formData.content.trim()) ? 0.5 : 1,
-              fontFamily: styles.fontFamily,
-            }}
-            onMouseDown={(e) => !isSubmitting && formData.content.trim() && (e.currentTarget.style.transform = 'scale(0.95)')}
-            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-          >
+        <div className="add-memory-footer">
+          <button onClick={handleClose} className="add-memory-cancel-btn">Cancel</button>
+          <button onClick={handleSubmit} disabled={isSubmitting || !formData.content.trim()} className="add-memory-submit-btn">
             {isSubmitting ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
 
-      {/* 지도 선택 모달 */}
       <NaverMapPickerModal
         isOpen={isMapPickerOpen}
         onClose={() => setIsMapPickerOpen(false)}
@@ -738,14 +339,6 @@ export default function AddMemoryModal({ visible, onClose, onCreated, initialDat
         initialLat={locationCoords.latitude ?? undefined}
         initialLng={locationCoords.longitude ?? undefined}
       />
-
-      {/* Animation */}
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
     </div>
   );
 }

@@ -274,7 +274,7 @@ const TimelinePage: React.FC = () => {
               fontWeight: 700,
               color: styles.colors.textDark,
               margin: 0,
-            }}>Together Since</p>
+            }}>둥이 커플이 함께한지</p>
             <p style={{
               fontSize: 18,
               fontWeight: 700,

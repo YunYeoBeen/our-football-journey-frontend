@@ -34,6 +34,7 @@ export default function CommentSection({
   const [newComment, setNewComment] = useState('');
   const [replyTo, setReplyTo] = useState<{ parentId: number; userName: string } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastAddedReplyParentId, setLastAddedReplyParentId] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // 대댓글 모드 시 input focus
@@ -49,15 +50,19 @@ export default function CommentSection({
 
     setIsSubmitting(true);
     try {
+      const parentId = replyTo?.parentId;
       await commentApi.createComment({
         boardId,
-        parentId: replyTo?.parentId,
+        parentId,
         content: newComment,
         userName: currentUserName,
       });
       message.success(replyTo ? '답글이 등록되었습니다.' : '댓글이 등록되었습니다.');
       setNewComment('');
       setReplyTo(null);
+      if (parentId) {
+        setLastAddedReplyParentId(parentId);
+      }
       onCommentsChange();
     } catch {
       message.error('댓글 등록에 실패했습니다.');
@@ -136,6 +141,8 @@ export default function CommentSection({
               onReply={handleReply}
               onDelete={handleDelete}
               onUpdate={handleUpdate}
+              refreshChildrenFor={lastAddedReplyParentId}
+              onChildrenRefreshed={() => setLastAddedReplyParentId(null)}
             />
           ))
         )}

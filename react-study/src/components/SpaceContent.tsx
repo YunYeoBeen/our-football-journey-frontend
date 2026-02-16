@@ -7,28 +7,12 @@ import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
 import AddTodoModal from './AddTodoModal';
 import AddMemoModal from './AddMemoModal';
+import EditTodoModal from './EditTodoModal';
+import EditMemoModal from './EditMemoModal';
+import '../styles/SpaceContent.css';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ko');
-
-const colors = {
-  primary: '#E91E8C',
-  primaryLight: '#fce4ec',
-  textDark: '#181110',
-  textMuted: '#8d645e',
-  gray50: '#f9fafb',
-  gray100: '#f3f4f6',
-  gray200: '#e5e7eb',
-  gray400: '#9ca3af',
-  white: '#ffffff',
-  priorityHigh: '#ef4444',
-  priorityLow: '#9ca3af',
-  checkCompleted: '#ffb4a8',
-  memoPink: '#E91E8C',
-  memoBlue: '#3b82f6',
-  memoGreen: '#22c55e',
-  memoYellow: '#eab308',
-};
 
 const memoBgMap: Record<string, string> = {
   PINK: '#fdf2f8',
@@ -38,10 +22,10 @@ const memoBgMap: Record<string, string> = {
 };
 
 const memoBorderMap: Record<string, string> = {
-  PINK: colors.memoPink,
-  BLUE: colors.memoBlue,
-  GREEN: colors.memoGreen,
-  YELLOW: colors.memoYellow,
+  PINK: '#E91E8C',
+  BLUE: '#3b82f6',
+  GREEN: '#22c55e',
+  YELLOW: '#eab308',
 };
 
 type SpaceTab = 'todo' | 'memo';
@@ -54,17 +38,18 @@ const SpaceContent: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddTodo, setShowAddTodo] = useState(false);
   const [showAddMemo, setShowAddMemo] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<TodoItem | null>(null);
+  const [editingMemo, setEditingMemo] = useState<MemoItem | null>(null);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
 
-  // ─── Data fetching ───
-
   const fetchTodos = useCallback(async () => {
     try {
       const data = await todoApi.getList();
-      setActiveTodos(data.active);
-      setCompletedTodos(data.completed);
+      const todos = data.content;
+      setActiveTodos(todos.filter(t => t.status !== 'DONE'));
+      setCompletedTodos(todos.filter(t => t.status === 'DONE'));
     } catch {
       // API 연결 전에는 빈 배열 유지
     }
@@ -73,7 +58,13 @@ const SpaceContent: React.FC = () => {
   const fetchMemos = useCallback(async () => {
     try {
       const data = await memoApi.getList();
-      setMemos(data);
+      // pinned 메모를 최상단에 정렬
+      const sortedMemos = [...data.content].sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return 0;
+      });
+      setMemos(sortedMemos);
     } catch {
       // API 연결 전에는 빈 배열 유지
     }
@@ -87,8 +78,6 @@ const SpaceContent: React.FC = () => {
     };
     load();
   }, [fetchTodos, fetchMemos]);
-
-  // ─── Horizontal scroll ↔ tab sync ───
 
   const handleScroll = useCallback(() => {
     if (isScrollingRef.current || !scrollRef.current) return;
@@ -106,18 +95,25 @@ const SpaceContent: React.FC = () => {
     setTimeout(() => { isScrollingRef.current = false; }, 400);
   }, []);
 
-  // ─── Todo actions ───
-
-  const handleToggleTodo = async (todoId: number) => {
+  const handleToggleTodo = async (e: React.MouseEvent, todo: TodoItem) => {
+    e.stopPropagation();
     try {
-      await todoApi.toggle(todoId);
+      const isCompleted = todo.status === 'DONE';
+      await todoApi.toggleComplete({
+        todoId: todo.todoId,
+        content: todo.content,
+        priority: todo.priority,
+        dueDate: todo.dueDate,
+        completed: !isCompleted,
+      });
       await fetchTodos();
     } catch {
       message.error('변경에 실패했습니다.');
     }
   };
 
-  const handleDeleteTodo = async (todoId: number) => {
+  const handleDeleteTodo = async (e: React.MouseEvent, todoId: number) => {
+    e.stopPropagation();
     try {
       await todoApi.delete(todoId);
       await fetchTodos();
@@ -126,7 +122,8 @@ const SpaceContent: React.FC = () => {
     }
   };
 
-  const handleDeleteMemo = async (memoId: number) => {
+  const handleDeleteMemo = async (e: React.MouseEvent, memoId: number) => {
+    e.stopPropagation();
     try {
       await memoApi.delete(memoId);
       await fetchMemos();
@@ -134,8 +131,6 @@ const SpaceContent: React.FC = () => {
       message.error('삭제에 실패했습니다.');
     }
   };
-
-  // ─── Due date formatting ───
 
   const formatDueDate = (dueDate: string | null) => {
     if (!dueDate) return null;
@@ -146,57 +141,27 @@ const SpaceContent: React.FC = () => {
     if (diff === 0) return 'Today';
     if (diff === 1) return 'Tomorrow';
     if (diff < 7) return due.format('dddd');
-    return due.format('M/D');
+    return due.format('YYYY-MM-DD');
   };
-
-  // ─── Render ───
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 300 }}>
-        <div style={{
-          width: 32, height: 32, border: `3px solid ${colors.gray200}`,
-          borderTopColor: colors.primary, borderRadius: '50%',
-          animation: 'spin 0.8s linear infinite',
-        }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="space-loading">
+        <div className="space-loading-spinner" />
       </div>
     );
   }
 
   return (
-    <div style={{ position: 'relative' }}>
-      {/* ─── Sticky Tab Bar ─── */}
-      <div style={{
-        position: 'sticky',
-        top: 72,
-        zIndex: 10,
-        backgroundColor: colors.white,
-        padding: '12px 16px 0',
-      }}>
-        <div style={{
-          display: 'flex',
-          backgroundColor: colors.gray100,
-          borderRadius: 12,
-          padding: 4,
-        }}>
+    <div className="space">
+      {/* Sticky Tab Bar */}
+      <div className="space-tabs">
+        <div className="space-tabs-inner">
           {(['todo', 'memo'] as SpaceTab[]).map((tab) => (
             <button
               key={tab}
               onClick={() => scrollToTab(tab)}
-              style={{
-                flex: 1,
-                padding: '10px 0',
-                borderRadius: 10,
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: 14,
-                fontWeight: 700,
-                transition: 'all 0.2s',
-                backgroundColor: activeTab === tab ? colors.white : 'transparent',
-                color: activeTab === tab ? colors.primary : colors.textMuted,
-                boxShadow: activeTab === tab ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
-              }}
+              className={`space-tab-btn ${activeTab === tab ? 'space-tab-btn--active' : 'space-tab-btn--inactive'}`}
             >
               {tab === 'todo' ? 'To-Do' : 'Memos'}
             </button>
@@ -204,98 +169,61 @@ const SpaceContent: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── Horizontal Scroll Container ─── */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        style={{
-          display: 'flex',
-          overflowX: 'auto',
-          scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          scrollbarWidth: 'none',
-          msOverflowStyle: 'none',
-        }}
-      >
-        {/* ─── Todo Section ─── */}
-        <div style={{ minWidth: '100%', scrollSnapAlign: 'start', padding: '16px 16px 100px' }}>
-          {/* Active Tasks */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: colors.textMuted, textTransform: 'uppercase' }}>
-              Active Tasks
-            </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: colors.primary }}>
-              {activeTodos.length} tasks left
-            </span>
+      {/* Horizontal Scroll Container */}
+      <div ref={scrollRef} onScroll={handleScroll} className="space-scroll-container">
+        {/* Todo Section */}
+        <div className="space-section">
+          <div className="space-section-header">
+            <span className="space-section-label">Active Tasks</span>
+            <span className="space-section-count">{activeTodos.length} tasks left</span>
           </div>
 
           {activeTodos.length === 0 && (
-            <div style={{
-              padding: 32, textAlign: 'center', color: colors.gray400,
-              backgroundColor: colors.gray50, borderRadius: 16, fontSize: 14,
-            }}>
-              할 일이 없습니다
-            </div>
+            <div className="space-empty">할 일이 없습니다</div>
           )}
 
           {activeTodos.map((todo) => (
             <div
-              key={todo.id}
-              style={{
-                display: 'flex', alignItems: 'flex-start', gap: 14,
-                padding: '16px 18px', backgroundColor: colors.white,
-                borderRadius: 16, marginBottom: 10,
-                border: `1px solid ${colors.gray200}`,
-                transition: 'transform 0.15s',
-              }}
+              key={todo.todoId}
+              className="space-todo-item"
+              onClick={() => setEditingTodo(todo)}
+              style={{ cursor: 'pointer' }}
             >
-              {/* Checkbox */}
+              {/* Toggle Switch */}
               <button
-                onClick={() => handleToggleTodo(todo.id)}
-                style={{
-                  width: 24, height: 24, borderRadius: '50%',
-                  border: `2px solid ${colors.gray200}`, background: 'none',
-                  cursor: 'pointer', flexShrink: 0, marginTop: 1,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              />
-
-              {/* Content */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: colors.textDark, lineHeight: 1.4 }}>
-                  {todo.content}
-                </p>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                  {todo.priority === 'HIGH' && (
-                    <span style={{ fontSize: 12, color: colors.priorityHigh, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>priority_high</span>
-                      High priority
-                    </span>
-                  )}
+                onClick={(e) => handleToggleTodo(e, todo)}
+                className="space-todo-toggle"
+              >
+                <div className="space-todo-toggle-track">
+                  <div className="space-todo-toggle-thumb" />
+                </div>
+              </button>
+              <div className="space-todo-content">
+                <p className="space-todo-text">{todo.content}</p>
+                <div className="space-todo-meta">
+                  {/* Priority Tag */}
+                  <span className={`space-todo-priority-tag space-todo-priority-tag--${todo.priority.toLowerCase()}`}>
+                    {todo.priority === 'HIGH' && <><span className="icon" style={{ fontSize: 12 }}>priority_high</span>높음</>}
+                    {todo.priority === 'NORMAL' && <><span className="icon" style={{ fontSize: 12 }}>remove</span>보통</>}
+                    {todo.priority === 'LOW' && <><span className="icon" style={{ fontSize: 12 }}>arrow_downward</span>낮음</>}
+                  </span>
                   {todo.dueDate && (
-                    <span style={{ fontSize: 12, color: colors.textMuted, display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>schedule</span>
-                      Due: {formatDueDate(todo.dueDate)}
+                    <span className={`space-todo-due ${todo.status === 'LATE' ? 'space-todo-due--late' : ''}`}>
+                      <span className="icon" style={{ fontSize: 14 }}>schedule</span>
+                      {todo.status === 'LATE' ? formatDueDate(todo.dueDate) : formatDueDate(todo.dueDate)}
                     </span>
                   )}
-                  {!todo.priority || (todo.priority === 'NORMAL' && !todo.dueDate) ? (
-                    <span style={{ fontSize: 12, color: colors.textMuted, display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>person</span>
-                      Added by {todo.writer}
-                    </span>
-                  ) : null}
+                  <span className="space-todo-writer">
+                    <span className="icon" style={{ fontSize: 14 }}>person</span>
+                    {todo.writer}
+                  </span>
                 </div>
               </div>
-
-              {/* Delete */}
               <button
-                onClick={() => handleDeleteTodo(todo.id)}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 4, flexShrink: 0,
-                  color: colors.gray400, display: 'flex', alignItems: 'center',
-                }}
+                onClick={(e) => handleDeleteTodo(e, todo.todoId)}
+                className="space-todo-delete-btn"
               >
-                <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18 }}>close</span>
+                <span className="icon" style={{ fontSize: 18 }}>delete</span>
               </button>
             </div>
           ))}
@@ -303,47 +231,36 @@ const SpaceContent: React.FC = () => {
           {/* Completed Tasks */}
           {completedTodos.length > 0 && (
             <>
-              <div style={{ marginTop: 24, marginBottom: 12 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: colors.textMuted, textTransform: 'uppercase' }}>
-                  Completed
-                </span>
+              <div className="space-section-header" style={{ marginTop: 24 }}>
+                <span className="space-section-label">Completed</span>
               </div>
               {completedTodos.map((todo) => (
                 <div
-                  key={todo.id}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    padding: '14px 18px', backgroundColor: colors.gray50,
-                    borderRadius: 16, marginBottom: 8,
-                  }}
+                  key={todo.todoId}
+                  className="space-todo-item space-todo-item--completed"
+                  onClick={() => setEditingTodo(todo)}
+                  style={{ cursor: 'pointer' }}
                 >
+                  {/* Toggle Switch - Completed */}
                   <button
-                    onClick={() => handleToggleTodo(todo.id)}
-                    style={{
-                      width: 24, height: 24, borderRadius: '50%',
-                      border: 'none', backgroundColor: colors.checkCompleted,
-                      cursor: 'pointer', flexShrink: 0,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}
+                    onClick={(e) => handleToggleTodo(e, todo)}
+                    className="space-todo-toggle space-todo-toggle--completed"
                   >
-                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16, color: colors.white }}>check</span>
+                    <div className="space-todo-toggle-track space-todo-toggle-track--completed">
+                      <div className="space-todo-toggle-thumb space-todo-toggle-thumb--completed" />
+                    </div>
                   </button>
-                  <div style={{ flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 14, color: colors.gray400, textDecoration: 'line-through' }}>
-                      {todo.content}
-                    </p>
-                    <span style={{ fontSize: 11, color: colors.gray400 }}>
-                      Completed {dayjs(todo.updatedAt).fromNow()}
+                  <div className="space-todo-content">
+                    <p className="space-todo-text space-todo-text--completed">{todo.content}</p>
+                    <span className="space-completed-time">
+                      Completed by {todo.writer}
                     </span>
                   </div>
                   <button
-                    onClick={() => handleDeleteTodo(todo.id)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 4,
-                      color: colors.gray400, display: 'flex',
-                    }}
+                    onClick={(e) => handleDeleteTodo(e, todo.todoId)}
+                    className="space-todo-delete-btn"
                   >
-                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 18 }}>close</span>
+                    <span className="icon" style={{ fontSize: 18 }}>delete</span>
                   </button>
                 </div>
               ))}
@@ -351,58 +268,41 @@ const SpaceContent: React.FC = () => {
           )}
         </div>
 
-        {/* ─── Memo Section ─── */}
-        <div style={{ minWidth: '100%', scrollSnapAlign: 'start', padding: '16px 16px 100px' }}>
-          <div style={{ marginBottom: 12 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 1.5, color: colors.textMuted, textTransform: 'uppercase' }}>
-              Shared Memos
-            </span>
+        {/* Memo Section */}
+        <div className="space-section">
+          <div className="space-section-header">
+            <span className="space-section-label">Shared Memos</span>
           </div>
 
           {memos.length === 0 && (
-            <div style={{
-              padding: 32, textAlign: 'center', color: colors.gray400,
-              backgroundColor: colors.gray50, borderRadius: 16, fontSize: 14,
-            }}>
-              메모가 없습니다
-            </div>
+            <div className="space-empty">메모가 없습니다</div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div className="space-memo-grid">
             {memos.map((memo) => (
               <div
-                key={memo.id}
+                key={memo.memoId}
+                className={`space-memo-item ${memo.isPinned ? 'space-memo-item--pinned' : ''}`}
                 style={{
-                  position: 'relative',
                   backgroundColor: memoBgMap[memo.color] || memoBgMap.PINK,
-                  borderRadius: 16,
-                  padding: 16,
-                  borderLeft: `4px solid ${memoBorderMap[memo.color] || memoBorderMap.PINK}`,
-                  minHeight: 120,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
+                  borderLeftColor: memoBorderMap[memo.color] || memoBorderMap.PINK,
+                  cursor: 'pointer',
                 }}
+                onClick={() => setEditingMemo(memo)}
               >
-                <p style={{
-                  margin: 0, fontSize: 14, fontWeight: 500, color: colors.textDark,
-                  lineHeight: 1.5, overflow: 'hidden',
-                  display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical',
-                }}>
-                  {memo.content}
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
-                  <span style={{ fontSize: 11, color: colors.textMuted }}>
-                    {dayjs(memo.createdAt).fromNow()}
+                {memo.isPinned && (
+                  <span className="space-memo-pin">
+                    <span className="icon" style={{ fontSize: 14 }}>push_pin</span>
                   </span>
+                )}
+                <p className="space-memo-text">{memo.content}</p>
+                <div className="space-memo-footer">
+                  <span className="space-memo-time">{dayjs(memo.createdAt).fromNow()}</span>
                   <button
-                    onClick={() => handleDeleteMemo(memo.id)}
-                    style={{
-                      background: 'none', border: 'none', cursor: 'pointer', padding: 2,
-                      color: colors.gray400, display: 'flex',
-                    }}
+                    onClick={(e) => handleDeleteMemo(e, memo.memoId)}
+                    className="space-memo-delete-btn"
                   >
-                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 16 }}>close</span>
+                    <span className="icon" style={{ fontSize: 16 }}>delete</span>
                   </button>
                 </div>
               </div>
@@ -411,44 +311,19 @@ const SpaceContent: React.FC = () => {
         </div>
       </div>
 
-      {/* ─── FAB Button ─── */}
+      {/* FAB Button */}
       <button
         onClick={() => activeTab === 'todo' ? setShowAddTodo(true) : setShowAddMemo(true)}
-        style={{
-          position: 'fixed',
-          bottom: 96,
-          right: 'max(16px, calc((100vw - 448px) / 2 + 16px))',
-          width: 56, height: 56, borderRadius: '50%',
-          backgroundColor: colors.primary,
-          color: colors.white, border: 'none',
-          boxShadow: `0 8px 24px ${colors.primary}40`,
-          cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 40,
-          transition: 'transform 0.2s',
-        }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+        className="space-fab"
       >
-        <span style={{ fontSize: 28, fontFamily: 'Material Symbols Outlined' }}>add</span>
+        <span className="icon" style={{ fontSize: 28 }}>add</span>
       </button>
 
-      {/* ─── Modals ─── */}
-      <AddTodoModal
-        visible={showAddTodo}
-        onClose={() => setShowAddTodo(false)}
-        onCreated={fetchTodos}
-      />
-      <AddMemoModal
-        visible={showAddMemo}
-        onClose={() => setShowAddMemo(false)}
-        onCreated={fetchMemos}
-      />
-
-      {/* Hide scrollbar */}
-      <style>{`
-        div::-webkit-scrollbar { display: none; }
-      `}</style>
+      {/* Modals */}
+      <AddTodoModal visible={showAddTodo} onClose={() => setShowAddTodo(false)} onCreated={fetchTodos} />
+      <AddMemoModal visible={showAddMemo} onClose={() => setShowAddMemo(false)} onCreated={fetchMemos} />
+      <EditTodoModal visible={!!editingTodo} todo={editingTodo} onClose={() => setEditingTodo(null)} onUpdated={fetchTodos} />
+      <EditMemoModal visible={!!editingMemo} memo={editingMemo} onClose={() => setEditingMemo(null)} onUpdated={fetchMemos} />
     </div>
   );
 };

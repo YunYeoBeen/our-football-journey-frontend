@@ -4,6 +4,7 @@ import { s3Api } from '../services/s3Api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
+import '../styles/TimelineContent.css';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ko');
@@ -13,17 +14,6 @@ const NAVER_MAP_CLIENT_ID = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
 // 사귀기 시작한 날짜
 const TOGETHER_SINCE = dayjs('2026-01-03');
 
-const styles = {
-  colors: {
-    primary: '#ffb4a8',
-    textDark: '#181110',
-    textMuted: '#8d645e',
-    gray50: '#f9fafb',
-    gray100: '#f1f1f1',
-    gray400: '#9ca3af',
-  },
-};
-
 // 카테고리 목록
 const CATEGORIES = [
   { value: '', label: '전체' },
@@ -31,6 +21,7 @@ const CATEGORIES = [
   { value: 'TRAVEL', label: '여행' },
   { value: 'FOOD', label: '맛집' },
   { value: 'FOOTBALL', label: '축구' },
+  { value: 'DAILY', label: '일상' },
 ];
 
 // 날짜 포맷팅 함수
@@ -49,22 +40,18 @@ const formatDateRange = (startDateStr: string, endDateStr?: string): string => {
   const startDate = dayjs(startDateStr);
   const endDate = endDateStr ? dayjs(endDateStr) : null;
 
-  // 단일 날짜 또는 endDate가 없는 경우
   if (!endDate || startDate.isSame(endDate, 'day')) {
     return formatDate(startDateStr);
   }
 
-  // 같은 달: "Jan 15-17, 2026"
   if (startDate.isSame(endDate, 'month')) {
     return `${startDate.format('MMM D')}-${endDate.format('D, YYYY')}`;
   }
 
-  // 다른 달: "Jan 30 - Feb 2, 2026"
   if (startDate.isSame(endDate, 'year')) {
     return `${startDate.format('MMM D')} - ${endDate.format('MMM D, YYYY')}`;
   }
 
-  // 다른 년도: "Dec 30, 2025 - Jan 2, 2026"
   return `${startDate.format('MMM D, YYYY')} - ${endDate.format('MMM D, YYYY')}`;
 };
 
@@ -84,11 +71,8 @@ interface TimelineContentProps {
 
 // D-Day 계산
 const calculateDaysTogether = (): number => {
-  // 1. 오늘 날짜와 사귄 날짜의 시간을 00:00:00으로 초기화 (시간 차이 오차 제거)
   const today = dayjs().startOf('day');
   const startDate = dayjs(TOGETHER_SINCE).startOf('day');
-
-  // 2. 날짜 차이 구하고 + 1 (시작일 포함)
   return today.diff(startDate, 'day') + 1;
 };
 
@@ -101,7 +85,6 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
   onLoadMore,
   profileImageUrl,
 }) => {
-  console.log('[TimelineContent] items.length:', items.length, 'loading:', loading);
   const daysTogether = calculateDaysTogether();
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -142,7 +125,6 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
 
       const response = await boardApi.search(params);
 
-      // 썸네일 URL 변환
       const keysToFetch = response.content
         .filter(item => item.thumbnail)
         .map(item => item.thumbnail!);
@@ -178,7 +160,6 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
     }
   }, [searchKeyword, selectedCategory, startDate, endDate]);
 
-  // 검색 초기화
   const clearSearch = () => {
     setSearchKeyword('');
     setSelectedCategory('');
@@ -189,7 +170,6 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
     setShowFilters(false);
   };
 
-  // 검색 더보기
   const loadMoreSearch = () => {
     if (!searchLoading && searchHasNext) {
       executeSearch(searchPage + 1, true);
@@ -218,209 +198,86 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
     };
   }, [loading, loadingMore, hasNext, onLoadMore]);
 
+  const displayItems = isSearchMode ? searchResults : items;
+  const isLoading = isSearchMode ? searchLoading : loading;
+  const displayHasNext = isSearchMode ? searchHasNext : hasNext;
+  const displayLoadMore = isSearchMode ? loadMoreSearch : onLoadMore;
+  const displayLoadingMore = isSearchMode ? searchLoading && searchResults.length > 0 : loadingMore;
+
+  const hasActiveFilters = showFilters || selectedCategory || startDate || endDate;
+
   return (
     <>
       {/* Profile Header */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        padding: 24,
-        gap: 16,
-      }}>
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            width: 112,
-            height: 112,
-            borderRadius: '50%',
-            backgroundImage: profileImageUrl ? `url("${profileImageUrl}")` : 'none',
-            backgroundColor: profileImageUrl ? 'transparent' : styles.colors.gray100,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-            border: `4px solid ${styles.colors.primary}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}>
+      <div className="timeline-profile-header">
+        <div className="timeline-profile-image-wrapper">
+          <div
+            className={`timeline-profile-image ${!profileImageUrl ? 'empty' : ''}`}
+            style={profileImageUrl ? { backgroundImage: `url("${profileImageUrl}")` } : undefined}
+          >
             {!profileImageUrl && (
-              <span style={{
-                fontSize: 48,
-                color: styles.colors.gray400,
-                fontFamily: 'Material Symbols Outlined',
-              }}>person</span>
+              <span className="icon icon-2xl" style={{ color: 'var(--color-gray-400)' }}>person</span>
             )}
           </div>
-          <div style={{
-            position: 'absolute',
-            bottom: -4,
-            right: -4,
-            backgroundColor: styles.colors.primary,
-            color: 'white',
-            padding: 6,
-            borderRadius: '50%',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          }}>
-            <span style={{ fontSize: 14, fontFamily: 'Material Symbols Outlined' }}>favorite</span>
+          <div className="timeline-profile-badge">
+            <span className="icon icon-sm">favorite</span>
           </div>
         </div>
-        <div style={{ textAlign: 'center' }}>
-          <p style={{ fontSize: 24, fontWeight: 700, color: styles.colors.textDark, margin: 0 }}>
-            Together Since
-          </p>
-          <p style={{ fontSize: 18, fontWeight: 700, color: styles.colors.primary, margin: '4px 0' }}>
-            {TOGETHER_SINCE.format('YYYY년 M월 D일')}
-          </p>
-          <p style={{
-            fontSize: 28,
-            fontWeight: 800,
-            color: styles.colors.primary,
-            margin: '8px 0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 4,
-          }}>
-            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 24 }}>favorite</span>
+        <div className="timeline-profile-info">
+          <p className="timeline-profile-title">둥이 커플이 함께한지❤️</p>
+          <p className="timeline-profile-date">{TOGETHER_SINCE.format('YYYY년 M월 D일')}</p>
+          <p className="timeline-profile-dday">
+            <span className="icon icon-lg">favorite</span>
             D+{daysTogether}
           </p>
-          <p style={{ fontSize: 14, color: styles.colors.textMuted, margin: 0 }}>
-            {items.length}개의 추억을 함께 만들었어요
-          </p>
+          <p className="timeline-profile-count">{items.length}개의 추억</p>
         </div>
       </div>
 
       {/* 검색 영역 */}
-      <div style={{ padding: '0 16px 16px' }}>
-        {/* 검색바 */}
-        <div style={{
-          display: 'flex',
-          gap: 8,
-          marginBottom: 12,
-        }}>
-          <div style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: '10px 14px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            border: `1px solid ${styles.colors.gray100}`,
-          }}>
-            <span style={{
-              fontFamily: 'Material Symbols Outlined',
-              fontSize: 20,
-              color: styles.colors.gray400,
-              marginRight: 10,
-            }}>search</span>
+      <div className="timeline-search-container">
+        <div className="timeline-search-bar">
+          <div className="timeline-search-input-wrapper">
+            <span className="icon icon-md timeline-search-icon">search</span>
             <input
               type="text"
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && executeSearch()}
               placeholder="추억 검색..."
-              style={{
-                flex: 1,
-                border: 'none',
-                outline: 'none',
-                fontSize: 15,
-                color: styles.colors.textDark,
-                backgroundColor: 'transparent',
-              }}
+              className="timeline-search-input"
             />
             {isSearchMode && (
-              <button
-                onClick={clearSearch}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 4,
-                  cursor: 'pointer',
-                  display: 'flex',
-                }}
-              >
-                <span style={{
-                  fontFamily: 'Material Symbols Outlined',
-                  fontSize: 18,
-                  color: styles.colors.gray400,
-                }}>close</span>
+              <button onClick={clearSearch} className="btn btn-ghost">
+                <span className="icon icon-md" style={{ color: 'var(--color-gray-400)' }}>close</span>
               </button>
             )}
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            style={{
-              padding: '10px 14px',
-              borderRadius: 12,
-              border: `1px solid ${showFilters || selectedCategory || startDate || endDate ? styles.colors.primary : styles.colors.gray100}`,
-              backgroundColor: showFilters || selectedCategory || startDate || endDate ? `${styles.colors.primary}15` : 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            }}
+            className={`btn btn-icon ${hasActiveFilters ? 'active' : ''}`}
           >
-            <span style={{
-              fontFamily: 'Material Symbols Outlined',
-              fontSize: 20,
-              color: showFilters || selectedCategory || startDate || endDate ? styles.colors.primary : styles.colors.gray400,
-            }}>tune</span>
+            <span
+              className="icon icon-md"
+              style={{ color: hasActiveFilters ? 'var(--color-primary)' : 'var(--color-gray-400)' }}
+            >tune</span>
           </button>
-          <button
-            onClick={() => executeSearch()}
-            style={{
-              padding: '10px 16px',
-              borderRadius: 12,
-              border: 'none',
-              backgroundColor: styles.colors.primary,
-              color: 'white',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: 14,
-              boxShadow: '0 2px 8px rgba(255,180,168,0.4)',
-            }}
-          >
+          <button onClick={() => executeSearch()} className="btn btn-primary">
             검색
           </button>
         </div>
 
         {/* 필터 영역 */}
         {showFilters && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: 12,
-            padding: 16,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-            border: `1px solid ${styles.colors.gray100}`,
-            marginBottom: 12,
-          }}>
-            {/* 카테고리 */}
-            <div style={{ marginBottom: 16 }}>
-              <p style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: styles.colors.textMuted,
-                marginBottom: 8,
-                textTransform: 'uppercase',
-              }}>카테고리</p>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="timeline-filter-panel">
+            <div className="timeline-filter-section">
+              <p className="label">카테고리</p>
+              <div className="timeline-filter-chips">
                 {CATEGORIES.map((cat) => (
                   <button
                     key={cat.value}
                     onClick={() => setSelectedCategory(cat.value)}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 20,
-                      border: selectedCategory === cat.value ? 'none' : `1px solid ${styles.colors.gray100}`,
-                      backgroundColor: selectedCategory === cat.value ? styles.colors.primary : 'white',
-                      color: selectedCategory === cat.value ? 'white' : styles.colors.textDark,
-                      fontSize: 13,
-                      fontWeight: 500,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                    }}
+                    className={`chip ${selectedCategory === cat.value ? 'active' : ''}`}
                   >
                     {cat.label}
                   </button>
@@ -428,78 +285,34 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
               </div>
             </div>
 
-            {/* 날짜 범위 */}
-            <div>
-              <p style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: styles.colors.textMuted,
-                marginBottom: 8,
-                textTransform: 'uppercase',
-              }}>날짜 범위</p>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div className="timeline-filter-section">
+              <p className="label">날짜 범위</p>
+              <div className="timeline-date-range">
                 <input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '12px 14px',
-                    borderRadius: 10,
-                    border: `1px solid ${styles.colors.gray100}`,
-                    fontSize: 14,
-                    color: styles.colors.textDark,
-                    backgroundColor: styles.colors.gray50,
-                    minWidth: 0,
-                  }}
+                  className="input input-date"
                 />
-                <span style={{ color: styles.colors.gray400, flexShrink: 0 }}>~</span>
+                <span className="timeline-date-separator">~</span>
                 <input
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: '12px 14px',
-                    borderRadius: 10,
-                    border: `1px solid ${styles.colors.gray100}`,
-                    fontSize: 14,
-                    color: styles.colors.textDark,
-                    backgroundColor: styles.colors.gray50,
-                    minWidth: 0,
-                  }}
+                  className="input input-date"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* 검색 결과 상태 표시 */}
+        {/* 검색 결과 상태 */}
         {isSearchMode && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 8,
-          }}>
-            <p style={{
-              fontSize: 13,
-              color: styles.colors.textMuted,
-              margin: 0,
-            }}>
+          <div className="timeline-search-status">
+            <p className="timeline-search-count">
               {searchLoading ? '검색 중...' : `${searchResults.length}개의 결과`}
             </p>
-            <button
-              onClick={clearSearch}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: styles.colors.primary,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+            <button onClick={clearSearch} className="timeline-search-reset">
               초기화
             </button>
           </div>
@@ -507,278 +320,109 @@ const TimelineContent: React.FC<TimelineContentProps> = ({
       </div>
 
       {/* Timeline */}
-      {(() => {
-        const displayItems = isSearchMode ? searchResults : items;
-        const isLoading = isSearchMode ? searchLoading : loading;
-        const displayHasNext = isSearchMode ? searchHasNext : hasNext;
-        const displayLoadMore = isSearchMode ? loadMoreSearch : onLoadMore;
-        const displayLoadingMore = isSearchMode ? searchLoading && searchResults.length > 0 : loadingMore;
+      <div className="timeline-container">
+        <div className="timeline-line" />
 
-        return (
-          <div style={{ position: 'relative', paddingLeft: 16, paddingRight: 16 }}>
-            {/* Timeline line */}
-            <div style={{
-              position: 'absolute',
-              left: 36,
-              top: 0,
-              bottom: 0,
-              width: 2,
-              backgroundColor: styles.colors.gray100,
-              zIndex: 0,
-            }} />
-
-            {isLoading && displayItems.length === 0 ? (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: 48,
-              }}>
-                <span style={{
-                  fontSize: 32,
-                  color: styles.colors.primary,
-                  fontFamily: 'Material Symbols Outlined',
-                  animation: 'spin 1s linear infinite',
-                }}>progress_activity</span>
-              </div>
-            ) : displayItems.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 48, color: styles.colors.textMuted }}>
-                <span style={{
-                  fontSize: 48,
-                  fontFamily: 'Material Symbols Outlined',
-                  display: 'block',
-                  marginBottom: 16,
-                }}>{isSearchMode ? 'search_off' : 'photo_library'}</span>
-                <p>{isSearchMode ? '검색 결과가 없습니다' : 'No memories yet. Create your first one!'}</p>
-              </div>
-            ) : (
-              displayItems.map((item, index) => (
-                <div
-                  key={item.id}
-                  onClick={() => onItemClick(item.id)}
-                  style={{
-                    position: 'relative',
-                    display: 'grid',
-                    gridTemplateColumns: '40px 1fr',
-                    gap: 16,
-                    marginBottom: 32,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {/* Timeline dot */}
-                  <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    paddingTop: 8,
-                  }}>
-                    <div style={{
-                      zIndex: 10,
-                      backgroundColor: index === 0 ? styles.colors.primary : 'white',
-                      borderRadius: '50%',
-                      padding: 6,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                      border: index === 0 ? 'none' : `2px solid ${styles.colors.primary}30`,
-                    }}>
-                      <span style={{
-                        fontSize: 16,
-                        color: index === 0 ? 'white' : styles.colors.primary,
-                        fontFamily: 'Material Symbols Outlined',
-                        display: 'block',
-                      }}>
-                        {item.thumbnailUrl ? 'camera_alt' : 'edit_note'}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Content card */}
-                  <div
-                    style={{
-                      backgroundColor: 'white',
-                      borderRadius: 12,
-                      padding: 16,
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-                      border: `1px solid ${styles.colors.gray50}`,
-                      transition: 'transform 0.2s, box-shadow 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 8px 30px rgba(0,0,0,0.08)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = '0 4px 20px rgba(0,0,0,0.04)';
-                    }}
-                  >
-                    <div style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      marginBottom: 8,
-                    }}>
-                      <p style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: styles.colors.textMuted,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        margin: 0,
-                      }}>{formatDateRange(item.startDate, item.endDate)}</p>
-                      {index === 0 && (
-                        <span style={{
-                          fontSize: 18,
-                          color: styles.colors.primary,
-                          fontFamily: 'Material Symbols Outlined',
-                        }}>favorite</span>
-                      )}
-                    </div>
-
-                    <h3 style={{
-                      fontSize: 18,
-                      fontWeight: 700,
-                      color: styles.colors.textDark,
-                      margin: '0 0 4px 0',
-                      lineHeight: 1.3,
-                    }}>{item.title}</h3>
-
-                    {item.writer && (
-                      <p style={{
-                        fontSize: 12,
-                        color: styles.colors.gray400,
-                        margin: '0 0 12px 0',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}>
-                        <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14 }}>person</span>
-                        {item.writer}
-                      </p>
-                    )}
-
-                    {!item.writer && <div style={{ marginBottom: 8 }} />}
-
-                    {item.thumbnailUrl && (
-                      <div style={{
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        aspectRatio: '4/3',
-                        backgroundColor: styles.colors.gray100,
-                      }}>
-                        <img
-                          src={item.thumbnailUrl}
-                          alt={item.title}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        />
-                      </div>
-                    )}
-
-                    {item.latitude != null && item.longitude != null && NAVER_MAP_CLIENT_ID && (
-                      <div style={{
-                        marginTop: item.thumbnailUrl ? 8 : 0,
-                        borderRadius: 8,
-                        overflow: 'hidden',
-                        border: `1px solid ${styles.colors.gray100}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8,
-                        backgroundColor: styles.colors.gray50,
-                      }}>
-                        <img
-                          src={`https://maps.apigw.ntruss.com/map-static/v2/raster-cors?w=120&h=120&scale=2&center=${item.longitude},${item.latitude}&level=15&markers=type:d|size:tiny|pos:${item.longitude}%20${item.latitude}&X-NCP-APIGW-API-KEY-ID=${NAVER_MAP_CLIENT_ID}`}
-                          alt="위치"
-                          style={{ width: 56, height: 56, objectFit: 'cover', flexShrink: 0, display: 'block' }}
-                          loading="lazy"
-                        />
-                        {item.place && (
-                          <span style={{
-                            fontSize: 12,
-                            color: styles.colors.textMuted,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                          }}>
-                            <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 14, flexShrink: 0 }}>location_on</span>
-                            {item.place}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-
-            {/* Load more indicator */}
+        {isLoading && displayItems.length === 0 ? (
+          <div className="timeline-loading">
+            <span className="icon icon-xl spinner" style={{ color: 'var(--color-primary)' }}>
+              progress_activity
+            </span>
+          </div>
+        ) : displayItems.length === 0 ? (
+          <div className="timeline-empty">
+            <span className="icon timeline-empty-icon">
+              {isSearchMode ? 'search_off' : 'photo_library'}
+            </span>
+            <p>{isSearchMode ? '검색 결과가 없습니다' : 'No memories yet. Create your first one!'}</p>
+          </div>
+        ) : (
+          displayItems.map((item, index) => (
             <div
-              ref={loadMoreRef}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '40px 1fr',
-                gap: 16,
-              }}
+              key={item.id}
+              onClick={() => onItemClick(item.id)}
+              className="timeline-item"
             >
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                paddingTop: 8,
-              }}>
-                <div style={{
-                  zIndex: 10,
-                  width: 8,
-                  height: 8,
-                  backgroundColor: styles.colors.gray100,
-                  borderRadius: '50%',
-                }} />
+              {/* Timeline dot */}
+              <div className="timeline-dot-wrapper">
+                <div className={`timeline-dot ${index === 0 ? 'active' : 'inactive'}`}>
+                  <span className="icon timeline-dot-icon">
+                    {item.thumbnailUrl ? 'camera_alt' : 'edit_note'}
+                  </span>
+                </div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center', paddingBottom: 48 }}>
-                {displayLoadingMore ? (
-                  <span style={{
-                    fontSize: 24,
-                    color: styles.colors.primary,
-                    fontFamily: 'Material Symbols Outlined',
-                    animation: 'spin 1s linear infinite',
-                  }}>progress_activity</span>
-                ) : displayHasNext ? (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); displayLoadMore(); }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: styles.colors.textMuted,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.1em',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                  >
-                    View older memories
-                    <span style={{ fontSize: 12, fontFamily: 'Material Symbols Outlined' }}>expand_more</span>
-                  </button>
-                ) : displayItems.length > 0 ? (
-                  <p style={{ color: styles.colors.gray400, fontSize: 12, margin: 0 }}>
-                    No more memories
+
+              {/* Content card */}
+              <div className="card">
+                <div className="timeline-card-header">
+                  <p className="timeline-card-date">{formatDateRange(item.startDate, item.endDate)}</p>
+                  {index === 0 && (
+                    <span className="icon icon-md" style={{ color: 'var(--color-primary)' }}>favorite</span>
+                  )}
+                </div>
+
+                <h3 className="timeline-card-title">{item.title}</h3>
+
+                {item.writer && (
+                  <p className="timeline-card-writer">
+                    <span className="icon icon-sm">person</span>
+                    {item.writer}
                   </p>
-                ) : null}
+                )}
+
+                {!item.writer && <div style={{ marginBottom: 8 }} />}
+
+                {item.thumbnailUrl && (
+                  <div className="timeline-card-thumbnail">
+                    <img src={item.thumbnailUrl} alt={item.title} />
+                  </div>
+                )}
+
+                {item.latitude != null && item.longitude != null && NAVER_MAP_CLIENT_ID && (
+                  <div className="timeline-location" style={{ marginTop: item.thumbnailUrl ? 8 : 0 }}>
+                    <img
+                      src={`https://maps.apigw.ntruss.com/map-static/v2/raster-cors?w=120&h=120&scale=2&center=${item.longitude},${item.latitude}&level=15&markers=type:d|size:tiny|pos:${item.longitude}%20${item.latitude}&X-NCP-APIGW-API-KEY-ID=${NAVER_MAP_CLIENT_ID}`}
+                      alt="위치"
+                      className="timeline-location-map"
+                      loading="lazy"
+                    />
+                    {item.place && (
+                      <span className="timeline-location-text">
+                        <span className="icon icon-sm" style={{ flexShrink: 0 }}>location_on</span>
+                        {item.place}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
-        );
-      })()}
+          ))
+        )}
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+        {/* Load more indicator */}
+        <div ref={loadMoreRef} className="timeline-load-more">
+          <div className="timeline-dot-wrapper">
+            <div className="timeline-load-more-dot" />
+          </div>
+          <div className="timeline-load-more-content">
+            {displayLoadingMore ? (
+              <span className="icon icon-lg spinner" style={{ color: 'var(--color-primary)' }}>
+                progress_activity
+              </span>
+            ) : displayHasNext ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); displayLoadMore(); }}
+                className="timeline-load-more-btn"
+              >
+                View older memories
+                <span className="icon icon-sm">expand_more</span>
+              </button>
+            ) : displayItems.length > 0 ? (
+              <p className="timeline-end-text">No more memories</p>
+            ) : null}
+          </div>
+        </div>
+      </div>
     </>
   );
 };

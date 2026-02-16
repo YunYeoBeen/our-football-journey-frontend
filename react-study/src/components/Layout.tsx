@@ -1,18 +1,7 @@
 import type { ReactNode, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/userAuthStore';
-
-const styles = {
-  colors: {
-    primary: '#ffb4a8',
-    backgroundLight: '#fdfcfc',
-    textDark: '#181110',
-    textMuted: '#8d645e',
-    gray100: '#f1f1f1',
-    gray400: '#9ca3af',
-  },
-  fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif",
-};
+import '../styles/Layout.css';
 
 export type TabType = 'timeline' | 'calendar' | 'space';
 
@@ -48,56 +37,22 @@ const Layout: FC<LayoutProps> = ({
   const navButton = (tab: TabType, icon: string, label: string) => (
     <button
       onClick={() => onTabChange(tab)}
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 4,
-        background: 'none',
-        border: 'none',
-        cursor: 'pointer',
-        padding: 8,
-      }}
+      className="layout-nav-btn"
     >
-      <span style={{
-        fontSize: 24,
-        color: activeTab === tab ? styles.colors.primary : styles.colors.gray400,
-        fontFamily: 'Material Symbols Outlined',
-        fontVariationSettings: activeTab === tab ? "'FILL' 1" : "'FILL' 0",
-      }}>{icon}</span>
-      <span style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color: activeTab === tab ? styles.colors.primary : styles.colors.gray400,
-      }}>{label}</span>
+      <span className={`layout-nav-btn-icon ${activeTab === tab ? 'layout-nav-btn-icon--active' : 'layout-nav-btn-icon--inactive'}`}>
+        {icon}
+      </span>
+      <span className={`layout-nav-btn-label ${activeTab === tab ? 'layout-nav-btn-label--active' : 'layout-nav-btn-label--inactive'}`}>
+        {label}
+      </span>
     </button>
   );
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: styles.colors.backgroundLight,
-      fontFamily: styles.fontFamily,
-    }}>
+    <div className="layout">
       {/* Fixed Header */}
-      <header style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 50,
-        backgroundColor: 'rgba(253, 252, 252, 0.9)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: `1px solid ${styles.colors.gray100}`,
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: 16,
-          justifyContent: 'space-between',
-          maxWidth: 448,
-          margin: '0 auto',
-        }}>
+      <header className="layout-header">
+        <div className="layout-header-inner">
           <h1
             onClick={() => {
               if (onLogoClick) {
@@ -106,73 +61,25 @@ const Layout: FC<LayoutProps> = ({
                 navigate('/home');
               }
             }}
-            style={{
-              fontSize: 24,
-              fontWeight: 800,
-              color: styles.colors.primary,
-              margin: 0,
-              cursor: 'pointer',
-              letterSpacing: '-0.5px',
-            }}
+            className="layout-logo"
           >
             MUSAHAE
           </h1>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div className="layout-header-actions">
             <div
               onClick={onProfileClick}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                border: `2px solid ${styles.colors.primary}`,
-                backgroundImage: profileImageUrl ? `url("${profileImageUrl}")` : 'none',
-                backgroundColor: profileImageUrl ? 'transparent' : styles.colors.gray100,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'transform 0.2s',
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              className={`layout-profile ${!profileImageUrl ? 'layout-profile--empty' : ''}`}
+              style={profileImageUrl ? { backgroundImage: `url("${profileImageUrl}")` } : undefined}
             >
               {!profileImageUrl && (
-                <span style={{
-                  fontSize: 18,
-                  color: styles.colors.gray400,
-                  fontFamily: 'Material Symbols Outlined',
-                }}>person</span>
+                <span className="layout-profile-icon">person</span>
               )}
             </div>
             {userName && (
-              <span style={{
-                fontSize: 14,
-                fontWeight: 600,
-                color: styles.colors.textDark,
-                maxWidth: 80,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-              }}>
-                {userName}
-              </span>
+              <span className="layout-username">{userName}</span>
             )}
-            <button
-              onClick={handleLogout}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: styles.colors.textMuted,
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '4px 8px',
-              }}
-            >
+            <button onClick={handleLogout} className="layout-logout-btn">
               로그아웃
             </button>
           </div>
@@ -180,67 +87,25 @@ const Layout: FC<LayoutProps> = ({
       </header>
 
       {/* Main Content */}
-      <main style={{
-        maxWidth: 448,
-        margin: '0 auto',
-        paddingTop: 72,
-        paddingBottom: 80,
-        minHeight: '100vh',
-      }}>
+      <main className="layout-main">
         {children}
       </main>
 
       {/* Fixed Bottom Navigation */}
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(20px)',
-        borderTop: `1px solid ${styles.colors.gray100}`,
-        padding: '12px 24px',
-        paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
-        zIndex: 50,
-      }}>
-        <div style={{
-          maxWidth: 448,
-          margin: '0 auto',
-          display: 'flex',
-          justifyContent: 'space-around',
-          alignItems: 'center',
-        }}>
+      <nav className="layout-nav">
+        <div className="layout-nav-inner">
           {navButton('calendar', 'calendar_today', 'Calendar')}
-
-          {/* Add Button */}
-          <div style={{ position: 'relative', top: -24 }}>
-            <button
-              onClick={onAddClick}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                backgroundColor: styles.colors.primary,
-                color: 'white',
-                border: '4px solid white',
-                boxShadow: `0 8px 24px ${styles.colors.primary}50`,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'transform 0.2s',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-            >
-              <span style={{ fontSize: 30, fontFamily: 'Material Symbols Outlined' }}>add</span>
-            </button>
-          </div>
-
           {navButton('timeline', 'auto_awesome_motion', 'Timeline')}
           {navButton('space', 'edit_note', 'Space')}
         </div>
       </nav>
+
+      {/* Floating Add Button - Only show on Calendar and Timeline */}
+      {(activeTab === 'calendar' || activeTab === 'timeline') && (
+        <button onClick={onAddClick} className="layout-fab">
+          <span className="layout-fab-icon">add</span>
+        </button>
+      )}
     </div>
   );
 };

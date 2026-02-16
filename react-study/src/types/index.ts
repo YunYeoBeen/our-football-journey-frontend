@@ -55,6 +55,7 @@ export const WeatherMap = {
 export interface CommentResponseDto {
   commentId: number;
   userName: string;
+  profileUrl?: string;  // S3 key for profile image
   content: string;
   createdAt: string;
   childCount?: number;

@@ -1,0 +1,450 @@
+/* CalendarContent.css */
+
+.calendar {
+  padding: 16px;
+  padding-bottom: 120px;
+  user-select: none;
+}
+
+/* Legend */
+.calendar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.calendar-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calendar-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.calendar-legend-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+/* Month Navigation */
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding: 0 8px;
+}
+
+.calendar-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-nav-btn-icon {
+  font-size: 24px;
+  color: var(--color-text-muted);
+  font-family: 'Material Symbols Outlined';
+}
+
+.calendar-month-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin: 0;
+}
+
+/* Day Headers */
+.calendar-day-headers {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+
+.calendar-day-header--sun {
+  color: #ef4444;
+}
+
+.calendar-day-header--sat {
+  color: #3b82f6;
+}
+
+.calendar-day-header--weekday {
+  color: var(--color-gray-400);
+}
+
+/* Calendar Grid */
+.calendar-grid-wrapper {
+  touch-action: none;
+}
+
+.calendar-grid-container {
+  overflow: hidden;
+  padding-bottom: 16px;
+}
+
+.calendar-grid-container--animating {
+  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-grid--month {
+  touch-action: pan-y;
+}
+
+/* Day Cell */
+.calendar-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s;
+  min-height: 44px;
+}
+
+.calendar-day-cell--today {
+  border: 2px solid var(--color-primary);
+}
+
+.calendar-day-cell--selected {
+  border: 2px solid #004A9F;
+}
+
+.calendar-day-number {
+  font-size: 14px;
+}
+
+.calendar-day-number--bold {
+  font-weight: 600;
+}
+
+.calendar-day-number--sun {
+  color: #ef4444;
+}
+
+.calendar-day-number--sat {
+  color: #3b82f6;
+}
+
+.calendar-day-dots {
+  position: absolute;
+  bottom: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+.calendar-day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
+
+/* Drag Handle */
+.calendar-drag-handle {
+  display: flex;
+  justify-content: center;
+  padding: 12px 0;
+  user-select: none;
+  touch-action: none;
+}
+
+.calendar-drag-handle--grab {
+  cursor: grab;
+}
+
+.calendar-drag-handle--grabbing {
+  cursor: grabbing;
+}
+
+.calendar-drag-bar {
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  background-color: var(--color-gray-200);
+  transition: background-color 0.15s;
+}
+
+.calendar-drag-bar--active {
+  background-color: var(--color-primary);
+}
+
+/* Events Panel */
+.calendar-events-panel {
+  margin-top: 8px;
+}
+
+.calendar-events-panel--animated {
+  animation: slideUp 0.2s ease;
+}
+
+.calendar-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendar-events-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-events-clear-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #004A9F;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calendar-events-empty {
+  text-align: center;
+  color: var(--color-gray-400);
+  font-size: 14px;
+  padding: 24px;
+}
+
+/* Event Card */
+.calendar-event-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 12px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border-left: 4px solid;
+  transition: transform 0.2s;
+}
+
+.calendar-event-card:hover {
+  transform: translateX(4px);
+}
+
+.calendar-event-card--board {
+  border-left-color: var(--color-primary);
+}
+
+.calendar-event-card--match {
+  position: relative;
+}
+
+.calendar-event-thumbnail {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.calendar-event-thumbnail--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calendar-event-thumbnail-icon {
+  font-size: 20px;
+  font-family: 'Material Symbols Outlined';
+}
+
+.calendar-event-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.calendar-event-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.calendar-event-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.calendar-event-arrow {
+  font-size: 20px;
+  color: var(--color-gray-400);
+  font-family: 'Material Symbols Outlined';
+}
+
+/* Match Event Attendances */
+.calendar-event-attendances {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin: 3px 0 0 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.calendar-event-attendance-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.calendar-event-attendance-separator {
+  color: var(--color-gray-400);
+  margin: 0 2px;
+}
+
+.calendar-event-attendance-name {
+  font-weight: 600;
+}
+
+.calendar-event-attendance-status {
+  font-weight: 600;
+}
+
+/* Status Badge */
+.calendar-status-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.calendar-status-badge-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 14px;
+}
+
+/* Attendance Popup */
+.calendar-attendance-popup {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 6px;
+  padding: 6px 8px;
+  background-color: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--color-gray-200);
+  animation: fadeIn 0.15s ease;
+  z-index: 10;
+}
+
+.calendar-attendance-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.calendar-attendance-btn:disabled {
+  cursor: not-allowed;
+}
+
+.calendar-attendance-btn-icon {
+  font-size: 18px;
+  font-family: 'Material Symbols Outlined';
+}
+
+.calendar-attendance-btn-label {
+  font-size: 10px;
+  font-weight: 600;
+}
+
+/* Loading */
+.calendar-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+
+.calendar-loading-icon {
+  font-size: 32px;
+  color: var(--color-primary);
+  font-family: 'Material Symbols Outlined';
+  animation: spin 1s linear infinite;
+}
+
+/* Color classes */
+.color-primary { color: var(--color-primary); }
+.color-ulsan-blue { color: #004A9F; }
+.color-attending { color: #22c55e; }
+.color-not-attending { color: #ef4444; }
+.color-tv { color: #8b5cf6; }
+
+.bg-primary { background-color: var(--color-primary); }
+.bg-ulsan-blue { background-color: #004A9F; }
+.bg-attending { background-color: #22c55e; }
+.bg-not-attending { background-color: #ef4444; }
+.bg-tv { background-color: #8b5cf6; }
+
+/* Animations */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-50%) scale(0.9); }
+  to { opacity: 1; transform: translateY(-50%) scale(1); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

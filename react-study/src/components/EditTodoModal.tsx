@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { message } from 'antd';
 import { todoApi } from '../services/spaceApi';
+import type { TodoItem } from '../services/spaceApi';
 
 const colors = {
   primary: '#E91E8C',
@@ -13,69 +14,59 @@ const colors = {
   priorityHigh: '#ef4444',
   priorityNormal: '#8d645e',
   priorityLow: '#9ca3af',
+  danger: '#ef4444',
 };
 
 type Priority = 'HIGH' | 'NORMAL' | 'LOW';
 
 interface Props {
   visible: boolean;
+  todo: TodoItem | null;
   onClose: () => void;
-  onCreated: () => Promise<void>;
+  onUpdated: () => Promise<void>;
 }
 
-export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
+export default function EditTodoModal({ visible, todo, onClose, onUpdated }: Props) {
   const [content, setContent] = useState('');
   const [priority, setPriority] = useState<Priority>('NORMAL');
   const [dueDate, setDueDate] = useState('');
   const [saving, setSaving] = useState(false);
 
-  if (!visible) return null;
+  useEffect(() => {
+    if (todo) {
+      setContent(todo.content);
+      setPriority(todo.priority);
+      setDueDate(todo.dueDate ? todo.dueDate.split('T')[0] : '');
+    }
+  }, [todo]);
 
-  // 날짜가 과거인지 확인
-  const isPastDate = (dateStr: string): boolean => {
-    if (!dateStr || dateStr.length !== 10) return false;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const inputDate = new Date(dateStr);
-    return inputDate < today;
-  };
+  if (!visible || !todo) return null;
 
   const handleSave = async () => {
     if (!content.trim()) {
       message.warning('할 일을 입력해주세요.');
       return;
     }
-
-    // 마감일이 과거인 경우 경고
-    if (dueDate && isPastDate(dueDate)) {
-      message.warning('마감일이 이미 지났습니다. 날짜를 확인해주세요.');
-      return;
-    }
-
     setSaving(true);
     try {
-      await todoApi.create({
+      await todoApi.update({
+        todoId: todo.todoId,
         content: content.trim(),
         priority,
         ...(dueDate && { dueDate: `${dueDate}T23:59:59` }),
+        completed: todo.status === 'DONE',
       });
-      message.success('추가되었습니다!');
-      setContent('');
-      setPriority('NORMAL');
-      setDueDate('');
+      message.success('수정되었습니다!');
       onClose();
-      await onCreated();
+      await onUpdated();
     } catch {
-      message.error('추가에 실패했습니다.');
+      message.error('수정에 실패했습니다.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleClose = () => {
-    setContent('');
-    setPriority('NORMAL');
-    setDueDate('');
     onClose();
   };
 
@@ -84,6 +75,24 @@ export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
     { value: 'NORMAL', label: '보통', color: colors.priorityNormal },
     { value: 'LOW', label: '낮음', color: colors.priorityLow },
   ];
+
+  // 날짜 입력 포맷 검증 (yyyy-mm-dd)
+  const handleDateChange = (value: string) => {
+    // 숫자와 하이픈만 허용
+    const cleaned = value.replace(/[^\d-]/g, '');
+
+    // 자동 하이픈 추가
+    let formatted = cleaned;
+    if (cleaned.length >= 4 && cleaned[4] !== '-') {
+      formatted = cleaned.slice(0, 4) + '-' + cleaned.slice(4);
+    }
+    if (formatted.length >= 7 && formatted[7] !== '-') {
+      formatted = formatted.slice(0, 7) + '-' + formatted.slice(7);
+    }
+
+    // 최대 10자리로 제한 (yyyy-mm-dd)
+    setDueDate(formatted.slice(0, 10));
+  };
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
@@ -109,7 +118,7 @@ export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
 
         {/* Title */}
         <h3 style={{ margin: '0 0 20px', fontSize: 18, fontWeight: 700, color: colors.textDark }}>
-          새 할 일
+          할 일 수정
         </h3>
 
         {/* Content input */}
@@ -170,20 +179,7 @@ export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
           <input
             type="text"
             value={dueDate}
-            onChange={(e) => {
-              // 숫자와 하이픈만 허용
-              const cleaned = e.target.value.replace(/[^\d-]/g, '');
-              // 자동 하이픈 추가
-              let formatted = cleaned;
-              if (cleaned.length >= 4 && cleaned[4] !== '-') {
-                formatted = cleaned.slice(0, 4) + '-' + cleaned.slice(4);
-              }
-              if (formatted.length >= 7 && formatted[7] !== '-') {
-                formatted = formatted.slice(0, 7) + '-' + formatted.slice(7);
-              }
-              // 최대 10자리로 제한 (yyyy-mm-dd)
-              setDueDate(formatted.slice(0, 10));
-            }}
+            onChange={(e) => handleDateChange(e.target.value)}
             placeholder="2026-03-06"
             style={{
               width: '100%',
@@ -221,7 +217,7 @@ export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
               opacity: saving ? 0.6 : 1,
             }}
           >
-            {saving ? '추가 중...' : '추가'}
+            {saving ? '저장 중...' : '저장'}
           </button>
         </div>
       </div>

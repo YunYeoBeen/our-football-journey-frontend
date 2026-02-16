@@ -130,12 +130,10 @@ const HomePage: React.FC = () => {
 
       while (hasMore) {
         const response = await boardApi.getAllList(pageNum, 50);
-        console.log(`[fetchAllItems] page=${pageNum}, content.length=${response.content.length}, hasNext=${response.hasNext}`);
         allItems = [...allItems, ...response.content];
         hasMore = response.hasNext;
         pageNum++;
       }
-      console.log('[fetchAllItems] 총 아이템 수:', allItems.length);
 
       // 아이템을 먼저 세팅 (썸네일 URL 실패해도 게시글은 표시)
       const urlMap: Record<string, string> = {};
@@ -180,7 +178,6 @@ const HomePage: React.FC = () => {
         })));
       }
     } catch (error) {
-      console.error('fetchAllItems 실패:', error);
     } finally {
       setLoading(false);
     }

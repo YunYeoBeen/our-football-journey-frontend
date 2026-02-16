@@ -1,0 +1,551 @@
+/* MemoryDetailModal.css */
+
+.memory-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: var(--font-family);
+}
+
+.memory-detail-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.memory-detail-modal {
+  position: relative;
+  width: 100%;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  display: flex;
+  animation: fadeIn 0.2s ease;
+}
+
+.memory-detail-modal--desktop {
+  max-width: 900px;
+  height: 80vh;
+  max-height: 90vh;
+  flex-direction: row;
+}
+
+.memory-detail-modal--mobile {
+  max-width: 480px;
+  height: 90vh;
+  max-height: 90vh;
+  flex-direction: column;
+}
+
+/* Loading & Error States */
+.memory-detail-loading,
+.memory-detail-error {
+  padding: 60px;
+  text-align: center;
+  width: 100%;
+}
+
+.memory-detail-loading-icon {
+  font-size: 32px;
+  color: var(--color-primary);
+  font-family: 'Material Symbols Outlined';
+  animation: pulse 1.5s infinite;
+}
+
+.memory-detail-loading-text,
+.memory-detail-error-text {
+  color: var(--color-text-muted);
+  margin-top: 12px;
+}
+
+/* Image Section */
+.memory-detail-image-section {
+  position: relative;
+  background-color: #000;
+  flex-shrink: 0;
+}
+
+.memory-detail-image-section--desktop {
+  width: 55%;
+  height: 100%;
+}
+
+.memory-detail-image-section--mobile {
+  width: 100%;
+  height: 280px;
+}
+
+.memory-detail-image-section--edit {
+  background-color: var(--color-gray-100);
+}
+
+.memory-detail-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.memory-detail-image-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: var(--color-gray-100);
+}
+
+.memory-detail-image-empty-text {
+  color: var(--color-text-muted);
+}
+
+/* Image Navigation */
+.memory-detail-image-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.memory-detail-image-nav-btn--left {
+  left: 12px;
+}
+
+.memory-detail-image-nav-btn--right {
+  right: 12px;
+}
+
+.memory-detail-image-nav-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 20px;
+}
+
+/* Image Dots */
+.memory-detail-image-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.memory-detail-image-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.memory-detail-image-dot--active {
+  background-color: white;
+}
+
+.memory-detail-image-dot--inactive {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Close Button */
+.memory-detail-close-btn {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.memory-detail-close-btn--mobile {
+  top: 12px;
+  right: 12px;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+}
+
+.memory-detail-close-btn--desktop {
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-gray-100);
+}
+
+.memory-detail-close-icon {
+  font-family: 'Material Symbols Outlined';
+  font-size: 20px;
+}
+
+.memory-detail-close-icon--small {
+  font-size: 18px;
+  color: var(--color-text-muted);
+}
+
+/* Edit Mode Image Controls */
+.memory-detail-edit-image-delete-btn,
+.memory-detail-edit-image-add-btn {
+  position: absolute;
+  bottom: 12px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memory-detail-edit-image-delete-btn {
+  bottom: 48px;
+  right: 12px;
+  background-color: var(--color-danger);
+  color: white;
+}
+
+.memory-detail-edit-image-add-btn {
+  right: 12px;
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Content Section */
+.memory-detail-content-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.memory-detail-content-inner {
+  padding: 16px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Header */
+.memory-detail-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin: 0 0 8px 0;
+}
+
+.memory-detail-meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+
+.memory-detail-tags {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.memory-detail-tag {
+  padding: 3px 10px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.memory-detail-tag--category {
+  background-color: rgba(255, 180, 168, 0.2);
+  color: var(--color-primary);
+}
+
+.memory-detail-tag--weather {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+}
+
+.memory-detail-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-text-dark);
+  margin: 12px 0 0 0;
+  white-space: pre-wrap;
+}
+
+/* Static Map */
+.memory-detail-map {
+  margin-top: 12px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-gray-200);
+}
+
+.memory-detail-map-image {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+
+/* Action Buttons */
+.memory-detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.memory-detail-edit-btn {
+  padding: 8px 16px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memory-detail-delete-btn {
+  padding: 8px 12px;
+  background-color: var(--color-gray-100);
+  color: var(--color-danger);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Delete Confirmation */
+.memory-detail-delete-confirm {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.memory-detail-delete-confirm-text {
+  flex: 1;
+  font-size: 13px;
+  color: var(--color-danger);
+  margin: 0;
+}
+
+.memory-detail-delete-cancel-btn {
+  padding: 6px 12px;
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.memory-detail-delete-confirm-btn {
+  padding: 6px 12px;
+  background-color: var(--color-danger);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.memory-detail-delete-confirm-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Comment Button */
+.memory-detail-comment-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 16px;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-light);
+  font-family: var(--font-family);
+}
+
+/* Edit Form */
+.memory-detail-edit-form {
+  padding: 16px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.memory-detail-form-group {
+  margin-bottom: 12px;
+}
+
+.memory-detail-form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-gray-500);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.memory-detail-form-input,
+.memory-detail-form-select,
+.memory-detail-form-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+  font-family: var(--font-family);
+}
+
+.memory-detail-form-textarea {
+  resize: vertical;
+}
+
+.memory-detail-form-select {
+  background-color: white;
+}
+
+.memory-detail-form-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.memory-detail-form-row > div {
+  flex: 1;
+}
+
+.memory-detail-date-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.memory-detail-date-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.memory-detail-date-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-gray-500);
+  min-width: 40px;
+  flex-shrink: 0;
+}
+
+.memory-detail-date-input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid var(--color-gray-200);
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.memory-detail-place-row {
+  display: flex;
+  gap: 6px;
+}
+
+.memory-detail-map-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-primary);
+  background-color: rgba(255, 180, 168, 0.15);
+  border: 1px solid rgba(255, 180, 168, 0.4);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* Edit Form Buttons */
+.memory-detail-edit-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.memory-detail-cancel-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-700);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.memory-detail-save-btn {
+  flex: 1;
+  padding: 10px 16px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.memory-detail-save-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Error State Close Button */
+.memory-detail-error-close-btn {
+  margin-top: 16px;
+  padding: 8px 24px;
+  background-color: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

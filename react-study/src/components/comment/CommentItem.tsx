@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { message } from 'antd';
 import { commentApi } from '../../services/commentApi';
+import { s3Api } from '../../services/s3Api';
 import type { CommentResponseDto } from '../../types';
 
 const styles = {
@@ -24,7 +25,8 @@ interface CommentItemProps {
   onReply?: (parentId: number, parentUserName: string) => void;
   onDelete: (commentId: number) => void;
   onUpdate: (commentId: number, newContent: string) => void;
-  newReply?: CommentResponseDto | null;
+  refreshChildrenFor?: number | null;
+  onChildrenRefreshed?: () => void;
 }
 
 export default function CommentItem({
@@ -35,6 +37,8 @@ export default function CommentItem({
   onReply,
   onDelete,
   onUpdate,
+  refreshChildrenFor,
+  onChildrenRefreshed,
 }: CommentItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(comment.content);
@@ -43,8 +47,38 @@ export default function CommentItem({
   const [childPage, setChildPage] = useState(0);
   const [hasMoreChildren, setHasMoreChildren] = useState(true);
   const [loadingChildren, setLoadingChildren] = useState(false);
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
 
   const isOwner = comment.userName === currentUserName;
+
+  // 프로필 이미지 로드
+  useEffect(() => {
+    const loadProfileImage = async () => {
+      if (comment.profileUrl) {
+        try {
+          const url = await s3Api.getPresignedViewUrl(comment.profileUrl, 'PROFILE');
+          setProfileImageUrl(url);
+        } catch {
+          // 프로필 이미지 로드 실패 시 무시
+        }
+      }
+    };
+    loadProfileImage();
+  }, [comment.profileUrl]);
+
+  // 대댓글 새로고침 트리거
+  useEffect(() => {
+    if (refreshChildrenFor === comment.commentId && !isChild) {
+      // 대댓글이 이미 열려있으면 새로고침, 아니면 열기
+      if (showReplies) {
+        loadChildComments(true);
+      } else {
+        setShowReplies(true);
+        loadChildComments(true);
+      }
+      onChildrenRefreshed?.();
+    }
+  }, [refreshChildrenFor]);
 
   // 대댓글 로드
   const loadChildComments = useCallback(async (reset = false) => {
@@ -116,14 +150,42 @@ export default function CommentItem({
         borderBottom: isChild ? 'none' : `1px solid ${styles.colors.gray100}`,
       }}
     >
-      {/* 헤더: 유저명 + 시간 */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-        <span style={{ fontWeight: 600, fontSize: 13, color: styles.colors.textDark }}>
-          {comment.userName}
-        </span>
-        <span style={{ fontSize: 11, color: styles.colors.textLight }}>
-          {formatDate(comment.createdAt)}
-        </span>
+      {/* 헤더: 프로필 + 유저명 + 시간 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+        {/* 프로필 이미지 */}
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            backgroundColor: styles.colors.gray100,
+            backgroundImage: profileImageUrl ? `url(${profileImageUrl})` : 'none',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            border: `1px solid ${styles.colors.gray200}`,
+          }}
+        >
+          {!profileImageUrl && (
+            <span
+              className="icon"
+              style={{ fontSize: 16, color: styles.colors.textLight }}
+            >
+              person
+            </span>
+          )}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+          <span style={{ fontWeight: 600, fontSize: 13, color: styles.colors.textDark }}>
+            {comment.userName}
+          </span>
+          <span style={{ fontSize: 11, color: styles.colors.textLight }}>
+            {formatDate(comment.createdAt)}
+          </span>
+        </div>
       </div>
 
       {/* 내용 또는 수정 폼 */}
