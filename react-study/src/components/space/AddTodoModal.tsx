@@ -71,15 +71,30 @@ export default function AddTodoModal({ visible, onClose, onCreated }: Props) {
   };
 
   const handleDateChange = (value: string) => {
-    const cleaned = value.replace(/[^\d-]/g, '');
-    let formatted = cleaned;
-    if (cleaned.length >= 4 && cleaned[4] !== '-') {
-      formatted = cleaned.slice(0, 4) + '-' + cleaned.slice(4);
+    // 삭제 중이면 그대로 설정 (자동 포맷팅 안함)
+    if (value.length < dueDate.length) {
+      setDueDate(value);
+      return;
     }
-    if (formatted.length >= 7 && formatted[7] !== '-') {
-      formatted = formatted.slice(0, 7) + '-' + formatted.slice(7);
+
+    // 숫자와 하이픈만 허용
+    const cleaned = value.replace(/[^\d]/g, '');
+    let formatted = '';
+
+    // YYYY-MM-DD 형식으로 자동 포맷팅
+    if (cleaned.length >= 4) {
+      formatted = cleaned.slice(0, 4);
+      if (cleaned.length >= 5) {
+        formatted += '-' + cleaned.slice(4, 6);
+        if (cleaned.length >= 7) {
+          formatted += '-' + cleaned.slice(6, 8);
+        }
+      }
+    } else {
+      formatted = cleaned;
     }
-    setDueDate(formatted.slice(0, 10));
+
+    setDueDate(formatted);
   };
 
   return (
