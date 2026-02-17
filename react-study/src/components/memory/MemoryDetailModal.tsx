@@ -1,17 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { message } from 'antd';
 import imageCompression from 'browser-image-compression';
-import { boardApi } from '../services/boardApi';
-import type { BoardDetailResponse } from '../services/boardApi';
+import { boardApi } from '../../services/boardApi';
+import type { BoardDetailResponse } from '../../services/boardApi';
 import ImageViewer from './ImageViewer';
-import { s3Api } from '../services/s3Api';
-import { CategoryMap, WeatherMap } from '../types';
-import type { CommentResponseDto } from '../types';
-import { useSwipeGesture } from '../hooks/useSwipeGesture';
-import { useAuthStore } from '../store/userAuthStore';
-import CommentModal from './comment/CommentModal';
-import NaverMapPickerModal from './NaverMapPickerModal';
-import '../styles/MemoryDetailModal.css';
+import { s3Api } from '../../services/s3Api';
+import { CategoryMap, WeatherMap } from '../../types';
+import type { CommentResponseDto } from '../../types';
+import { useSwipeGesture } from '../../hooks/useSwipeGesture';
+import { useAuthStore } from '../../store/userAuthStore';
+import CommentModal from '../comment/CommentModal';
+import NaverMapPickerModal from '../common/NaverMapPickerModal';
+import '../../styles/MemoryDetailModal.css';
 
 const NAVER_MAP_CLIENT_ID = import.meta.env.VITE_NAVER_MAP_CLIENT_ID;
 
@@ -331,7 +331,19 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
       )}
       <h2 className="memory-detail-title">{detail?.title}</h2>
       <div className="memory-detail-meta">
-        <span>📅 {detail?.endDate && detail?.startDate !== detail?.endDate ? `${detail?.startDate.split('T')[0]} - ${detail?.endDate.split('T')[0]}` : detail?.startDate.split('T')[0]}</span>
+        <div className="memory-detail-date-wrapper">
+          <div className="memory-detail-calendar-icon">
+            <div className="memory-detail-calendar-header"></div>
+            <span className="memory-detail-calendar-number">
+              {detail?.startDate ? new Date(detail.startDate).getDate() : 1}
+            </span>
+          </div>
+          <span>
+            {detail?.endDate && detail?.startDate !== detail?.endDate
+              ? `${detail?.startDate.split('T')[0]} - ${detail?.endDate.split('T')[0]}`
+              : detail?.startDate.split('T')[0]}
+          </span>
+        </div>
         <span>📍 {detail?.place}</span>
         {detail?.writer && <span>✍️ {detail?.writer}</span>}
       </div>

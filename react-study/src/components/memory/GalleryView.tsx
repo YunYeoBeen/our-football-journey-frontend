@@ -1,6 +1,6 @@
 import { Card, Tag, Space } from 'antd';
 import { ClockCircleOutlined, EnvironmentOutlined } from '@ant-design/icons';
-import { useMemoryStore } from '../store/userMemoryStore'
+import { useMemoryStore } from '../../store/userMemoryStore'
 
 const categoryColors: { [key: string]: string } = {
   '데이트': 'pink',

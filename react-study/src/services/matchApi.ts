@@ -59,6 +59,20 @@ export interface MatchByDateResponseDto {
   match?: MatchWithAttendanceDto;
 }
 
+// 리그 타입
+export type MatchLeague = 'K_LEAGUE' | 'FA_CUP' | 'ACL' | 'FRIENDLY';
+
+// 경기 목록 아이템 (직관 기록 추가용)
+export interface MatchListItemDto {
+  matchId: number;
+  homeTeam: string;
+  awayTeam: string;
+  kickOffTime: string; // ISO datetime
+  stadium: string;
+  league: MatchLeague;
+  isPast: boolean;
+}
+
 export const matchApi = {
   // 캘린더 조회 (start ~ end 기간)
   async getCalendar(start: string, end: string): Promise<CalendarResponseDto> {
@@ -117,6 +131,23 @@ export const matchApi = {
 
     if (!response.ok) {
       throw new Error('Failed to fetch match by date');
+    }
+
+    return response.json();
+  },
+
+  // 전체 경기 목록 조회 (직관 기록 추가용)
+  async getList(): Promise<MatchListItemDto[]> {
+    const token = localStorage.getItem('accessToken');
+    const response = await authFetch(`${API_BASE_URL}/list`, {
+      method: 'GET',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch match list');
     }
 
     return response.json();

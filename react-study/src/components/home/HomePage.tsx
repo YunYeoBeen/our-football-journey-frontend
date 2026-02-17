@@ -1,19 +1,20 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import Layout from './Layout';
-import NotificationPermissionModal from './NotificationPermissionModal';
-import type { TabType } from './Layout';
-import TimelineContent from './TimelineContent';
-import CalendarContent from './CalendarContent';
-import AddMemoryModal from './AddMemoryModal';
-import MemoryDetailModal from './MemoryDetailModal';
-import ProfileImageModal from './ProfileImageModal';
-import SpaceContent from './SpaceContent';
-import { boardApi } from '../services/boardApi';
-import type { BoardListItem } from '../services/boardApi';
-import { s3Api } from '../services/s3Api';
-import { userApi } from '../services/userApi';
-import { useAuthStore } from '../store/userAuthStore';
+import Layout from '../common/Layout';
+import NotificationPermissionModal from '../common/NotificationPermissionModal';
+import type { TabType } from '../common/Layout';
+import TimelineContent from '../timeline/TimelineContent';
+import CalendarContent from '../calendar/CalendarContent';
+import AddMemoryModal from '../memory/AddMemoryModal';
+import MemoryDetailModal from '../memory/MemoryDetailModal';
+import ProfileImageModal from '../common/ProfileImageModal';
+import SpaceContent from '../space/SpaceContent';
+import MatchCenterContent from '../match/MatchCenterContent';
+import { boardApi } from '../../services/boardApi';
+import type { BoardListItem } from '../../services/boardApi';
+import { s3Api } from '../../services/s3Api';
+import { userApi } from '../../services/userApi';
+import { useAuthStore } from '../../store/userAuthStore';
 
 // 썸네일 URL 캐시
 const thumbnailCache = new Map<string, string>();
@@ -250,6 +251,8 @@ const HomePage: React.FC = () => {
         );
       case 'space':
         return <SpaceContent />;
+      case 'matchcenter':
+        return <MatchCenterContent />;
       default:
         return null;
     }

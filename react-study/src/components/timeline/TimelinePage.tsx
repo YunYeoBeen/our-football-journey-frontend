@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuthStore } from '../store/userAuthStore';
+import { useAuthStore } from '../../store/userAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { boardApi } from '../services/boardApi';
-import type { BoardListItem } from '../services/boardApi';
-import { s3Api } from '../services/s3Api';
-import AddMemoryModal from './AddMemoryModal';
-import MemoryDetailModal from './MemoryDetailModal';
+import { boardApi } from '../../services/boardApi';
+import type { BoardListItem } from '../../services/boardApi';
+import { s3Api } from '../../services/s3Api';
+import AddMemoryModal from '../memory/AddMemoryModal';
+import MemoryDetailModal from '../memory/MemoryDetailModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 

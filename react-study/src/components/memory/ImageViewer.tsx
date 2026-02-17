@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSwipeGesture } from '../hooks/useSwipeGesture';
+import { useSwipeGesture } from '../../hooks/useSwipeGesture';
 
 const styles = {
   colors: {

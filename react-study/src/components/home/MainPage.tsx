@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useAuthStore } from '../store/userAuthStore';
+import { useAuthStore } from '../../store/userAuthStore';
 import { useNavigate } from 'react-router-dom';
-import { boardApi } from '../services/boardApi';
-import type { BoardListItem } from '../services/boardApi';
-import { s3Api } from '../services/s3Api';
-import AddMemoryModal from './AddMemoryModal';
-import MemoryDetailModal from './MemoryDetailModal';
+import { boardApi } from '../../services/boardApi';
+import type { BoardListItem } from '../../services/boardApi';
+import { s3Api } from '../../services/s3Api';
+import AddMemoryModal from '../memory/AddMemoryModal';
+import MemoryDetailModal from '../memory/MemoryDetailModal';
 
 // 썸네일 URL 캐시 (key -> presigned URL)
 const thumbnailCache = new Map<string, string>();

@@ -1,9 +1,9 @@
 import type { ReactNode, FC } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../store/userAuthStore';
-import '../styles/Layout.css';
+import { useAuthStore } from '../../store/userAuthStore';
+import '../../styles/Layout.css';
 
-export type TabType = 'timeline' | 'calendar' | 'space';
+export type TabType = 'timeline' | 'calendar' | 'space' | 'matchcenter';
 
 interface LayoutProps {
   children: ReactNode;
@@ -96,6 +96,7 @@ const Layout: FC<LayoutProps> = ({
         <div className="layout-nav-inner">
           {navButton('calendar', 'calendar_today', 'Calendar')}
           {navButton('timeline', 'auto_awesome_motion', 'Timeline')}
+          {navButton('matchcenter', 'sports_soccer', 'Match')}
           {navButton('space', 'edit_note', 'Space')}
         </div>
       </nav>

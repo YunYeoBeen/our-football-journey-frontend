@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button, Tabs, message, Spin } from 'antd';
 import { PlusOutlined, CameraOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import GalleryView from '../components/GalleryView';
-import TimelineView from '../components/TimelineView';
-import AddMemoryModal from '../components/AddMemoryModal';
-import { boardApi } from '../services/boardApi';
-import { useMemoryStore } from '../store/userMemoryStore';
-import type { Memory } from '../types';
+import GalleryView from './GalleryView';
+import TimelineView from '../timeline/TimelineView';
+import AddMemoryModal from './AddMemoryModal';
+import { boardApi } from '../../services/boardApi';
+import { useMemoryStore } from '../../store/userMemoryStore';
+import type { Memory } from '../../types';
 
 export default function MemoryPage() {
   const [viewMode, setViewMode] = useState<'gallery' | 'timeline'>('gallery');

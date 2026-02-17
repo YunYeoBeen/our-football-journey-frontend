@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { message } from 'antd';
 import imageCompression from 'browser-image-compression';
-import { s3Api } from '../services/s3Api';
-import { userApi } from '../services/userApi';
-import '../styles/ProfileImageModal.css';
+import { s3Api } from '../../services/s3Api';
+import { userApi } from '../../services/userApi';
+import '../../styles/ProfileImageModal.css';
 
 const compressionOptions = {
   maxSizeMB: 0.5,

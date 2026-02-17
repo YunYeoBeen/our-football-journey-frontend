@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import GoogleLoginButton from './GoogleLoginButton';
-import { s3Api } from '../services/s3Api';
-import '../styles/LoginPage.css';
+import { s3Api } from '../../services/s3Api';
+import '../../styles/LoginPage.css';
 
 export default function LoginPage() {
   const [showErrorModal, setShowErrorModal] = useState(false);

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { getFCMToken } from '../services/firebase';
-import { userApi } from '../services/userApi';
+import { getFCMToken } from '../../services/firebase';
+import { userApi } from '../../services/userApi';
 
 interface NotificationPermissionModalProps {
   isOpen: boolean;

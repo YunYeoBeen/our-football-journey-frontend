@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { todoApi, memoApi } from '../services/spaceApi';
-import type { TodoItem, MemoItem } from '../services/spaceApi';
+import { todoApi, memoApi } from '../../services/spaceApi';
+import type { TodoItem, MemoItem } from '../../services/spaceApi';
 import { message } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -9,7 +9,7 @@ import AddTodoModal from './AddTodoModal';
 import AddMemoModal from './AddMemoModal';
 import EditTodoModal from './EditTodoModal';
 import EditMemoModal from './EditMemoModal';
-import '../styles/SpaceContent.css';
+import '../../styles/SpaceContent.css';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ko');

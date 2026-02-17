@@ -1,11 +1,11 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import type { BoardListItem } from '../services/boardApi';
-import { matchApi } from '../services/matchApi';
-import type { CalendarEventDto, MatchAttendanceStatus } from '../services/matchApi';
-import { useSwipeGesture } from '../hooks/useSwipeGesture';
+import type { BoardListItem } from '../../services/boardApi';
+import { matchApi } from '../../services/matchApi';
+import type { CalendarEventDto, MatchAttendanceStatus } from '../../services/matchApi';
+import { useSwipeGesture } from '../../hooks/useSwipeGesture';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
-import '../styles/CalendarContent.css';
+import '../../styles/CalendarContent.css';
 
 dayjs.locale('ko');
 

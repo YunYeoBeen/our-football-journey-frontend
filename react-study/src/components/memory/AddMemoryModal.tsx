@@ -2,12 +2,12 @@ import { useState, useRef, useEffect } from 'react';
 import { message } from 'antd';
 import dayjs from 'dayjs';
 import imageCompression from 'browser-image-compression';
-import type { Memory } from '../types';
-import { CategoryMap, WeatherMap } from '../types';
-import { boardApi } from '../services/boardApi';
-import { s3Api } from '../services/s3Api';
-import NaverMapPickerModal from './NaverMapPickerModal';
-import '../styles/AddMemoryModal.css';
+import type { Memory } from '../../types';
+import { CategoryMap, WeatherMap } from '../../types';
+import { boardApi } from '../../services/boardApi';
+import { s3Api } from '../../services/s3Api';
+import NaverMapPickerModal from '../common/NaverMapPickerModal';
+import '../../styles/AddMemoryModal.css';
 
 const compressionOptions = {
   maxSizeMB: 1,

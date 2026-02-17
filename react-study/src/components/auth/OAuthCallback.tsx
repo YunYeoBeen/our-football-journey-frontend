@@ -1,4 +1,4 @@
-import { useAuthStore } from '../store/userAuthStore';
+import { useAuthStore } from '../../store/userAuthStore';
 import { jwtDecode } from 'jwt-decode';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';

@@ -1,9 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/userAuthStore';
-import LoginPage from './components/LoginPage';
-import OAuthCallback from './components/OAuthCallback'
-import HomePage from './components/HomePage';
+import LoginPage from './components/auth/LoginPage';
+import OAuthCallback from './components/auth/OAuthCallback'
+import HomePage from './components/home/HomePage';
 import { jwtDecode } from 'jwt-decode';
 import { getFCMToken, onForegroundMessage } from './services/firebase';
 import { userApi } from './services/userApi';

@@ -1,10 +1,10 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { boardApi, type BoardListItem, type BoardSearchParams } from '../services/boardApi';
-import { s3Api } from '../services/s3Api';
+import { boardApi, type BoardListItem, type BoardSearchParams } from '../../services/boardApi';
+import { s3Api } from '../../services/s3Api';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/ko';
-import '../styles/TimelineContent.css';
+import '../../styles/TimelineContent.css';
 
 dayjs.extend(relativeTime);
 dayjs.locale('ko');
