@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuthStore } from '../../store/userAuthStore';
 import { useNavigate } from 'react-router-dom';
 import { boardApi } from '../../services/boardApi';
@@ -214,7 +214,7 @@ const MainPage: React.FC = () => {
   }, [loading, loadingMore, hasNext, page, fetchItems]);
 
   const handleLogout = () => {
-    fetch('http://localhost:8080/api/v1/logout', {
+    fetch('http://localhost:8081/api/v1/logout', {
       method: 'POST',
       credentials: 'include',
     });

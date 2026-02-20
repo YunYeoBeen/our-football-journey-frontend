@@ -34,10 +34,12 @@ const HomePage: React.FC = () => {
   const [isNotificationModalVisible, setIsNotificationModalVisible] = useState(false);
   const [selectedBoardId, setSelectedBoardId] = useState<number | null>(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<string | null>(null);
+  const [matchNavigation, setMatchNavigation] = useState<{ historyId?: number; matchId?: number } | null>(null);
 
   // Profile state
   const [profileImageKey, setProfileImageKey] = useState<string | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState<string | undefined>(undefined);
+  const [nickname, setNickname] = useState<string | undefined>(undefined);
 
   // Data state
   const [items, setItems] = useState<BoardItemWithUrl[]>([]);
@@ -94,6 +96,9 @@ const HomePage: React.FC = () => {
         if (profile.imageKey) {
           setProfileImageKey(profile.imageKey);
           localStorage.setItem('profileImageKey', profile.imageKey);
+        }
+        if (profile.nickName) {
+          setNickname(profile.nickName);
         }
       } catch {
         const savedProfileKey = localStorage.getItem('profileImageKey');
@@ -201,21 +206,35 @@ const HomePage: React.FC = () => {
     setIsProfileModalVisible(true);
   };
 
-  const handleProfileUpdated = async (newImageKey: string) => {
-    setProfileImageKey(newImageKey);
-    localStorage.setItem('profileImageKey', newImageKey);
-
-    try {
-      const url = await s3Api.getPresignedViewUrl(newImageKey, 'PROFILE');
-      setProfileImageUrl(url);
-    } catch {
-      // 새 프로필 이미지 URL 조회 실패
+  const handleProfileUpdated = async (imageKey?: string, newNickname?: string) => {
+    if (imageKey) {
+      setProfileImageKey(imageKey);
+      localStorage.setItem('profileImageKey', imageKey);
+      try {
+        const url = await s3Api.getPresignedViewUrl(imageKey, 'PROFILE');
+        setProfileImageUrl(url);
+      } catch {
+        // 새 프로필 이미지 URL 조회 실패
+      }
+    }
+    if (newNickname !== undefined) {
+      setNickname(newNickname);
     }
   };
 
   const handleItemClick = (boardId: number) => {
     setSelectedBoardId(boardId);
     setIsDetailModalVisible(true);
+  };
+
+  const handleMatchHistoryClick = (historyId: number) => {
+    setMatchNavigation({ historyId });
+    setActiveTab('matchcenter');
+  };
+
+  const handleAddMatchHistory = (matchId: number) => {
+    setMatchNavigation({ matchId });
+    setActiveTab('matchcenter');
   };
 
   const refreshList = async () => {
@@ -247,12 +266,21 @@ const HomePage: React.FC = () => {
             onItemClick={handleItemClick}
             onDateSelect={setSelectedCalendarDate}
             refreshKey={refreshKey}
+            onMatchHistoryClick={handleMatchHistoryClick}
+            onAddMatchHistory={handleAddMatchHistory}
           />
         );
       case 'space':
         return <SpaceContent />;
       case 'matchcenter':
-        return <MatchCenterContent />;
+        return (
+          <MatchCenterContent
+            initialHistoryId={matchNavigation?.historyId}
+            initialMatchId={matchNavigation?.matchId}
+            onNavigated={() => setMatchNavigation(null)}
+            currentDisplayName={nickname || user?.name}
+          />
+        );
       default:
         return null;
     }
@@ -266,7 +294,7 @@ const HomePage: React.FC = () => {
         onAddClick={handleAddClick}
         profileImageUrl={profileImageUrl}
         onProfileClick={handleProfileClick}
-        userName={user?.name}
+        userName={nickname || user?.name}
         onLogoClick={() => setActiveTab('calendar')}
       >
         {renderContent()}
@@ -285,11 +313,13 @@ const HomePage: React.FC = () => {
         onClose={() => setIsDetailModalVisible(false)}
         onDeleted={refreshList}
         onUpdated={refreshList}
+        currentDisplayName={nickname || user?.name}
       />
 
       <ProfileImageModal
         visible={isProfileModalVisible}
         currentImageUrl={profileImageUrl}
+        currentNickname={nickname}
         onClose={() => setIsProfileModalVisible(false)}
         onUpdated={handleProfileUpdated}
       />

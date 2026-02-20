@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080';
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8081';
 
 // Google 로고 SVG 컴포넌트
 const GoogleIcon = () => (

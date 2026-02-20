@@ -4,6 +4,8 @@ const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/match-history`
 
 // ─── Types ───
 
+export type MatchAttendanceStatus = 'ATTENDING' | 'NOT_ATTENDING' | 'TV';
+
 export type PlaceType = 'STADIUM' | 'RESTAURANT' | 'CAFE' | 'BAR' | 'ETC';
 
 export interface PlaceCreateDto {
@@ -26,6 +28,7 @@ export interface MatchHistoryCreateRequest {
   matchId: number;
   homeScore: number;
   awayScore: number;
+  attendanceStatus?: MatchAttendanceStatus;
   memo?: string;
   places: PlaceCreateDto[];
 }
@@ -35,6 +38,7 @@ export interface MatchHistoryUpdateRequest {
   matchId?: number;
   homeScore?: number;
   awayScore?: number;
+  attendanceStatus?: MatchAttendanceStatus;
   memo?: string;
   places: PlaceCreateDto[];
 }
@@ -53,6 +57,7 @@ export interface MatchHistoryResponseDto {
   matchInfo?: MatchInfoDto;
   homeScore?: number;
   awayScore?: number;
+  attendanceStatus?: MatchAttendanceStatus;
   memo?: string;
   places?: PlaceResponseDto[];
   writer: string;
@@ -146,9 +151,14 @@ export const matchHistoryApi = {
         ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
-    if (!response.ok) throw new Error('직관 기록 조회에 실패했습니다.');
-    const data = await response.json();
-    return data || null;
+    if (!response.ok) return null;
+    const text = await response.text();
+    if (!text || text === 'null') return null;
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
   },
 
   async getAll(page = 0, size = 20): Promise<SliceResponse<MatchHistoryResponseDto>> {

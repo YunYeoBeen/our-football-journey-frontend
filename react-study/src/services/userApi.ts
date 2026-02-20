@@ -2,21 +2,16 @@ import { authFetch } from './authFetch';
 
 const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/api/v1/user`;
 
-export interface UserProfileImageResponse {
-  id: number;
-  success: boolean;
-  imageKey: string;
-}
-
 export interface UserProfileResponse {
   id: number;
   success: boolean;
   imageKey: string | null;
+  nickName?: string | null;
 }
 
 export const userApi = {
-  // 프로필 이미지 변경
-  async updateProfileImage(imageKey: string): Promise<UserProfileImageResponse> {
+  // 프로필 이미지/닉네임 변경
+  async updateProfile(imageKey?: string, nickName?: string): Promise<UserProfileResponse> {
     const token = localStorage.getItem('accessToken');
     const response = await authFetch(`${API_BASE_URL}/profile`, {
       method: 'POST',
@@ -24,11 +19,11 @@ export const userApi = {
         'Content-Type': 'application/json',
         ...(token && { 'Authorization': `Bearer ${token}` })
       },
-      body: JSON.stringify({ imageKey })
+      body: JSON.stringify({ imageKey: imageKey ?? null, nickName: nickName ?? null })
     });
 
     if (!response.ok) {
-      throw new Error('프로필 이미지 변경에 실패했습니다.');
+      throw new Error('프로필 변경에 실패했습니다.');
     }
 
     return response.json();

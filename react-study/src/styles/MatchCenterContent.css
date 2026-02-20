@@ -289,7 +289,7 @@
 .match-center-fab {
   position: fixed;
   bottom: 96px;
-  right: 20px;
+  right: max(16px, calc((100vw - 448px) / 2 + 16px));
   width: 56px;
   height: 56px;
   border-radius: 50%;
@@ -356,13 +356,13 @@
   }
 
   .match-center-fab {
-    bottom: 88px;
-    right: 16px;
-    width: 52px;
-    height: 52px;
+    bottom: 96px;
+    right: max(16px, calc((100vw - 448px) / 2 + 16px));
+    width: 56px;
+    height: 56px;
   }
 
   .match-center-fab-icon {
-    font-size: 24px;
+    font-size: 28px;
   }
 }

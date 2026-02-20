@@ -40,9 +40,10 @@ interface MemoryDetailModalProps {
   onClose: () => void;
   onDeleted?: () => void | Promise<void>;
   onUpdated?: () => void | Promise<void>;
+  currentDisplayName?: string;
 }
 
-export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted, onUpdated }: MemoryDetailModalProps) {
+export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted, onUpdated, currentDisplayName }: MemoryDetailModalProps) {
   const { user } = useAuthStore();
   const [detail, setDetail] = useState<BoardDetailResponse | null>(null);
   const [imageUrls, setImageUrls] = useState<string[]>([]);
@@ -251,6 +252,8 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
   ] : [];
 
   const currentUserName = user?.name || '';
+  const displayName = currentDisplayName || currentUserName;
+  const isOwner = !!displayName && displayName === detail?.writer;
 
   const renderImageSection = () => (
     <div className={`memory-detail-image-section ${isDesktop ? 'memory-detail-image-section--desktop' : 'memory-detail-image-section--mobile'} ${isEditMode ? 'memory-detail-image-section--edit' : ''}`}>
@@ -362,7 +365,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           />
         </div>
       )}
-      {!showDeleteConfirm ? (
+      {isOwner && (!showDeleteConfirm ? (
         <div className="memory-detail-actions">
           <button onClick={() => setIsEditMode(true)} className="memory-detail-edit-btn">
             <span className="icon">edit</span>수정
@@ -377,7 +380,7 @@ export default function MemoryDetailModal({ visible, boardId, onClose, onDeleted
           <button onClick={() => setShowDeleteConfirm(false)} className="memory-detail-delete-cancel-btn">취소</button>
           <button onClick={handleDelete} disabled={isDeleting} className="memory-detail-delete-confirm-btn">{isDeleting ? '삭제 중...' : '삭제'}</button>
         </div>
-      )}
+      ))}
       <button onClick={() => setCommentModalVisible(true)} className="memory-detail-comment-btn">
         <span className="icon">chat_bubble_outline</span>
         {comments.length > 0 ? `댓글 ${comments.length}개 보기` : '댓글 작성하기'}

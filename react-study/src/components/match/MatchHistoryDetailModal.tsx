@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 import { matchHistoryApi } from '../../services/matchHistoryApi';
@@ -13,6 +13,7 @@ interface MatchHistoryDetailModalProps {
   onClose: () => void;
   onEdit: (history: MatchHistoryResponseDto) => void;
   onDeleted: () => void;
+  currentDisplayName?: string;
 }
 
 const modalStyles = {
@@ -50,6 +51,7 @@ const MatchHistoryDetailModal: React.FC<MatchHistoryDetailModalProps> = ({
   onClose,
   onEdit,
   onDeleted,
+  currentDisplayName,
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -131,7 +133,8 @@ const MatchHistoryDetailModal: React.FC<MatchHistoryDetailModalProps> = ({
   const result = getMatchResult();
   const resultColor = getResultColor(result);
   const matchDate = history.matchInfo?.kickOffTime || history.createdAt;
-  const isOwner = userName === history.writer;
+  const displayName = currentDisplayName || userName;
+  const isOwner = !!displayName && displayName === history.writer;
 
   return (
     <>
@@ -439,11 +442,15 @@ const MatchHistoryDetailModal: React.FC<MatchHistoryDetailModalProps> = ({
                     borderRadius: 10,
                     fontSize: 14,
                     color: modalStyles.colors.textDark,
-                    lineHeight: 1.5,
-                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.6,
                   }}
                 >
-                  {history.memo}
+                  {history.memo.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').map((line, i, arr) => (
+                    <React.Fragment key={i}>
+                      {line}
+                      {i < arr.length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
                 </div>
               </div>
             )}

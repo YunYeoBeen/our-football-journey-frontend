@@ -569,28 +569,6 @@ const TimelinePage: React.FC = () => {
             <span style={{ fontSize: 10, fontWeight: 700 }}>Gallery</span>
           </button>
 
-          {/* Add button */}
-          <div style={{ position: 'relative', top: -24 }}>
-            <button
-              onClick={() => setIsModalVisible(true)}
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                backgroundColor: styles.colors.primary,
-                color: 'white',
-                border: '4px solid white',
-                boxShadow: `0 8px 24px ${styles.colors.primary}50`,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <span style={{ fontSize: 30, fontFamily: 'Material Symbols Outlined' }}>add</span>
-            </button>
-          </div>
-
           <button
             style={{
               display: 'flex',

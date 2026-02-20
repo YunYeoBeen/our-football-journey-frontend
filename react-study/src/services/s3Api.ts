@@ -45,7 +45,10 @@ export const s3Api = {
     }
   },
 
-  // 단일 이미지 조회용 Presigned URL 발급
+  async getPresignedViewUrls(keys: string[], type: UploadType = 'BOARD'): Promise<string[]> {
+    return Promise.all(keys.map(key => this.getPresignedViewUrl(key, type)));
+  },
+
   async getPresignedViewUrl(key: string, type: UploadType = 'BOARD'): Promise<string> {
     const token = localStorage.getItem('accessToken');
     const response = await authFetch(`${API_BASE_URL}/presigned/view/${type}?key=${encodeURIComponent(key)}`, {
@@ -61,29 +64,6 @@ export const s3Api = {
 
     const data = await response.json();
     return data.url;
-  },
-
-  // 여러 이미지 조회용 Presigned URL 발급
-  async getPresignedViewUrls(keys: string[]): Promise<string[]> {
-    const token = localStorage.getItem('accessToken');
-    // 각 key를 별도 파라미터로 전송 (Spring List 파싱 호환)
-    const queryParams = keys.map(key => `keys=${encodeURIComponent(key)}`).join('&');
-    const response = await authFetch(`${API_BASE_URL}/presigned/view-list?${queryParams}`, {
-      method: 'GET',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` })
-      }
-    });
-
-    if (!response.ok) {
-      throw new Error('Failed to get presigned view URLs');
-    }
-
-    const data: { key: string; url: string }[] = await response.json();
-
-    // 요청한 키 순서대로 URL 반환 (백엔드 응답 순서와 관계없이)
-    const urlMap = new Map(data.map(item => [item.key, item.url]));
-    return keys.map(key => urlMap.get(key) || '');
   },
 
   // 메인 페이지 이미지 조회 (인증 불필요)

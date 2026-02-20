@@ -20,7 +20,19 @@ export interface MapPlace {
   opponent?: string;
 }
 
-const MatchCenterContent: React.FC = () => {
+interface MatchCenterContentProps {
+  initialHistoryId?: number;
+  initialMatchId?: number;
+  onNavigated?: () => void;
+  currentDisplayName?: string;
+}
+
+const MatchCenterContent: React.FC<MatchCenterContentProps> = ({
+  initialHistoryId,
+  initialMatchId,
+  onNavigated,
+  currentDisplayName,
+}) => {
   const [matchHistories, setMatchHistories] = useState<MatchHistoryResponseDto[]>([]);
   const [mapPlaces, setMapPlaces] = useState<MapPlace[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,16 +72,31 @@ const MatchCenterContent: React.FC = () => {
       const response = await matchHistoryApi.getAll();
       setMatchHistories(response.content);
       setMapPlaces(extractMapPlaces(response.content));
+      return response.content;
     } catch (error) {
       console.error('직관 기록 로드 실패:', error);
+      return [];
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchMatchHistory();
-  }, [fetchMatchHistory]);
+    fetchMatchHistory().then(histories => {
+      if (initialHistoryId && histories.length > 0) {
+        const target = histories.find(h => h.id === initialHistoryId);
+        if (target) {
+          setSelectedHistory(target);
+          setDetailHistory(target);
+          setIsDetailModalVisible(true);
+        }
+        onNavigated?.();
+      } else if (initialMatchId) {
+        setIsAddModalVisible(true);
+        onNavigated?.();
+      }
+    });
+  }, [fetchMatchHistory]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 지도 마커 클릭
   const handleMarkerClick = (place: MapPlace) => {
@@ -165,6 +192,7 @@ const MatchCenterContent: React.FC = () => {
         visible={isAddModalVisible}
         onClose={() => setIsAddModalVisible(false)}
         onCreated={handleAddComplete}
+        initialMatchId={initialMatchId}
       />
 
       {/* 상세 모달 */}
@@ -174,6 +202,7 @@ const MatchCenterContent: React.FC = () => {
         onClose={() => setIsDetailModalVisible(false)}
         onEdit={handleEditClick}
         onDeleted={handleDeleted}
+        currentDisplayName={currentDisplayName}
       />
 
       {/* 수정 모달 */}

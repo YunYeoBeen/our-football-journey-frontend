@@ -101,8 +101,8 @@ const Layout: FC<LayoutProps> = ({
         </div>
       </nav>
 
-      {/* Floating Add Button - Only show on Calendar and Timeline */}
-      {(activeTab === 'calendar' || activeTab === 'timeline') && (
+      {/* Floating Add Button - Only show on Calendar */}
+      {activeTab === 'calendar' && (
         <button onClick={onAddClick} className="layout-fab">
           <span className="layout-fab-icon">add</span>
         </button>

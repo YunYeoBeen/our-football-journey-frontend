@@ -3,13 +3,14 @@ import NaverMapPickerModal from '../common/NaverMapPickerModal';
 import dayjs from 'dayjs';
 import { matchHistoryApi } from '../../services/matchHistoryApi';
 import { matchApi } from '../../services/matchApi';
-import type { PlaceCreateDto, PlaceType } from '../../services/matchHistoryApi';
+import type { PlaceCreateDto, PlaceType, MatchAttendanceStatus } from '../../services/matchHistoryApi';
 import type { MatchListItemDto } from '../../services/matchApi';
 
 interface MatchAddModalProps {
   visible: boolean;
   onClose: () => void;
   onCreated: () => void;
+  initialMatchId?: number;
 }
 
 interface TempPlace {
@@ -52,12 +53,14 @@ const MatchAddModal: React.FC<MatchAddModalProps> = ({
   visible,
   onClose,
   onCreated,
+  initialMatchId,
 }) => {
   const [matches, setMatches] = useState<MatchListItemDto[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
   const [isMatchListOpen, setIsMatchListOpen] = useState(false);
   const [homeScore, setHomeScore] = useState('');
   const [awayScore, setAwayScore] = useState('');
+  const [attendanceStatus, setAttendanceStatus] = useState<MatchAttendanceStatus>('ATTENDING');
   const [memo, setMemo] = useState('');
   const [places, setPlaces] = useState<TempPlace[]>([]);
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
@@ -71,11 +74,14 @@ const MatchAddModal: React.FC<MatchAddModalProps> = ({
     if (visible) {
       setIsLoadingMatches(true);
       matchApi.getList()
-        .then(setMatches)
+        .then(data => {
+          setMatches(data);
+          if (initialMatchId) setSelectedMatchId(initialMatchId);
+        })
         .catch(console.error)
         .finally(() => setIsLoadingMatches(false));
     }
-  }, [visible]);
+  }, [visible, initialMatchId]);
 
   // 모달 닫힐 때 초기화
   useEffect(() => {
@@ -84,6 +90,7 @@ const MatchAddModal: React.FC<MatchAddModalProps> = ({
       setIsMatchListOpen(false);
       setHomeScore('');
       setAwayScore('');
+      setAttendanceStatus('ATTENDING');
       setMemo('');
       setPlaces([]);
       setNextTempId(1);
@@ -177,6 +184,7 @@ const MatchAddModal: React.FC<MatchAddModalProps> = ({
         matchId: selectedMatchId,
         homeScore: parseInt(homeScore),
         awayScore: parseInt(awayScore),
+        attendanceStatus,
         memo: memo || undefined,
         places: placeDtos,
       });
@@ -535,6 +543,45 @@ const MatchAddModal: React.FC<MatchAddModalProps> = ({
                     }}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* 관람 방식 */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: modalStyles.colors.gray500, marginBottom: 8 }}>
+                관람 방식
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([
+                  { value: 'ATTENDING', label: '직관', icon: 'stadium', color: '#22c55e' },
+                  { value: 'TV', label: 'TV', icon: 'tv', color: '#8b5cf6' },
+                  { value: 'NOT_ATTENDING', label: '불참', icon: 'cancel', color: '#ef4444' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setAttendanceStatus(opt.value)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '10px 4px',
+                      border: `2px solid ${attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray200}`,
+                      borderRadius: 10,
+                      backgroundColor: attendanceStatus === opt.value ? `${opt.color}15` : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 22, color: attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray500 }}>
+                      {opt.icon}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray500 }}>
+                      {opt.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 

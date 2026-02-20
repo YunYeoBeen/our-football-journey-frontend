@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import type { BoardListItem } from '../../services/boardApi';
 import { matchApi } from '../../services/matchApi';
 import type { CalendarEventDto, MatchAttendanceStatus } from '../../services/matchApi';
+import { matchHistoryApi } from '../../services/matchHistoryApi';
 import { useSwipeGesture } from '../../hooks/useSwipeGesture';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
@@ -27,9 +28,16 @@ interface CalendarContentProps {
   onItemClick: (boardId: number) => void;
   onDateSelect?: (date: string | null) => void;
   refreshKey?: number;
+  onMatchHistoryClick?: (historyId: number) => void;
+  onAddMatchHistory?: (matchId: number) => void;
 }
 
 type ViewMode = 'month' | 'week';
+
+type MatchDialog =
+  | { type: 'future' }
+  | { type: 'confirm-add'; matchId: number }
+  | { type: 'error' };
 
 const CalendarContent: React.FC<CalendarContentProps> = ({
   items,
@@ -37,17 +45,18 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
   onItemClick,
   onDateSelect,
   refreshKey,
+  onMatchHistoryClick,
+  onAddMatchHistory,
 }) => {
   const [currentMonth, setCurrentMonth] = useState(dayjs());
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventDto[]>([]);
   const [eventsLoading, setEventsLoading] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const [hoveredMatchId, setHoveredMatchId] = useState<number | null>(null);
-  const [attendanceUpdating, setAttendanceUpdating] = useState(false);
-  const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [viewMode, setViewMode] = useState<ViewMode>('month');
   const [activeWeekIndex, setActiveWeekIndex] = useState(0);
+
+  const [matchDialog, setMatchDialog] = useState<MatchDialog | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const [calendarHeight, setCalendarHeight] = useState<number | null>(null);
@@ -187,29 +196,24 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     threshold: 50,
   });
 
-  const handleAttendanceChange = async (matchId: number, status: MatchAttendanceStatus) => {
-    if (attendanceUpdating) return;
-    setAttendanceUpdating(true);
+  const handleMatchCardClick = useCallback(async (event: CalendarEventDto) => {
+    if (!event.matchId) return;
+    const matchDate = dayjs(event.startDate);
+    if (matchDate.isAfter(dayjs())) {
+      setMatchDialog({ type: 'future' });
+      return;
+    }
     try {
-      await matchApi.updateAttendance(matchId, status);
-      setCalendarEvents(prev =>
-        prev.map(event =>
-          event.matchId === matchId
-            ? { ...event, attendanceStatus: status, attendances: event.attendances?.map((person, i) => i === 0 ? { ...person, status } : person) }
-            : event
-        )
-      );
-    } catch { /* 참석 상태 업데이트 실패 */ }
-    finally { setAttendanceUpdating(false); setHoveredMatchId(null); }
-  };
-
-  const handleMatchMouseEnter = (matchId: number) => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setHoveredMatchId(matchId);
-  };
-  const handleMatchMouseLeave = () => {
-    hoverTimeoutRef.current = setTimeout(() => setHoveredMatchId(null), 200);
-  };
+      const history = await matchHistoryApi.getByMatchId(event.matchId);
+      if (history) {
+        onMatchHistoryClick?.(history.id);
+      } else {
+        setMatchDialog({ type: 'confirm-add', matchId: event.matchId });
+      }
+    } catch {
+      setMatchDialog({ type: 'error' });
+    }
+  }, [onMatchHistoryClick, onAddMatchHistory]);
 
   useEffect(() => {
     const fetchCalendarEvents = async () => {
@@ -396,7 +400,6 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     }
 
     const myStatus = event.attendanceStatus || event.attendances?.[0]?.status || undefined;
-    const isHovered = hoveredMatchId === event.matchId;
     const statusColor = getStatusColor(myStatus);
     const statusLabel = myStatus === 'ATTENDING' ? '직관' : myStatus === 'NOT_ATTENDING' ? '불참' : myStatus === 'TV' ? 'TV' : undefined;
     const statusIcon = myStatus === 'ATTENDING' ? 'stadium' : myStatus === 'NOT_ATTENDING' ? 'cancel' : myStatus === 'TV' ? 'tv' : undefined;
@@ -404,10 +407,9 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
     return (
       <div
         key={`match-${event.matchId}-${idx}`}
-        onMouseEnter={() => event.matchId && handleMatchMouseEnter(event.matchId)}
-        onMouseLeave={handleMatchMouseLeave}
+        onClick={() => handleMatchCardClick(event)}
         className="calendar-event-card calendar-event-card--match"
-        style={{ borderLeftColor: statusColor }}
+        style={{ borderLeftColor: statusColor, cursor: 'pointer' }}
       >
         <div className="calendar-event-thumbnail calendar-event-thumbnail--empty" style={{ backgroundColor: `${statusColor}15` }}>
           <span className="calendar-event-thumbnail-icon" style={{ color: statusColor }}>sports_soccer</span>
@@ -431,31 +433,10 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
             </p>
           )}
         </div>
-        {statusLabel && !isHovered && (
+        {statusLabel && (
           <div className="calendar-status-badge" style={{ backgroundColor: `${statusColor}15`, color: statusColor }}>
             <span className="calendar-status-badge-icon">{statusIcon}</span>
             {statusLabel}
-          </div>
-        )}
-        {isHovered && event.matchId && (
-          <div className="calendar-attendance-popup" onMouseEnter={() => event.matchId && handleMatchMouseEnter(event.matchId)} onMouseLeave={handleMatchMouseLeave}>
-            {(['ATTENDING', 'NOT_ATTENDING', 'TV'] as const).map(status => {
-              const btnColor = getStatusColor(status);
-              const btnLabel = status === 'ATTENDING' ? '참석' : status === 'NOT_ATTENDING' ? '불참' : 'TV';
-              const btnIcon = status === 'ATTENDING' ? 'check_circle' : status === 'NOT_ATTENDING' ? 'cancel' : 'tv';
-              return (
-                <button
-                  key={status}
-                  onClick={(e) => { e.stopPropagation(); handleAttendanceChange(event.matchId!, status); }}
-                  disabled={attendanceUpdating}
-                  className="calendar-attendance-btn"
-                  style={{ backgroundColor: myStatus === status ? `${btnColor}20` : 'transparent' }}
-                >
-                  <span className="calendar-attendance-btn-icon" style={{ color: btnColor }}>{btnIcon}</span>
-                  <span className="calendar-attendance-btn-label" style={{ color: btnColor }}>{btnLabel}</span>
-                </button>
-              );
-            })}
           </div>
         )}
       </div>
@@ -586,6 +567,146 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
           ) : (
             sortedEvents.map((event, idx) => renderEventCard(event, idx))
           )}
+        </div>
+      )}
+
+      {/* 경기 클릭 커스텀 다이얼로그 */}
+      {matchDialog && (
+        <div
+          onClick={() => setMatchDialog(null)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 3000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.45)',
+            backdropFilter: 'blur(6px)',
+            padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#fff',
+              borderRadius: 24,
+              padding: '36px 28px 28px',
+              width: '100%',
+              maxWidth: 320,
+              textAlign: 'center',
+              boxShadow: '0 24px 64px rgba(0,0,0,0.22)',
+            }}
+          >
+            {/* 아이콘 */}
+            <div style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              backgroundColor: matchDialog.type === 'future' ? '#eff6ff' : matchDialog.type === 'confirm-add' ? '#f0fdf4' : '#fef2f2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px',
+            }}>
+              <span style={{
+                fontFamily: 'Material Symbols Outlined',
+                fontSize: 40,
+                color: matchDialog.type === 'future' ? '#60a5fa' : matchDialog.type === 'confirm-add' ? '#22c55e' : '#ef4444',
+              }}>
+                {matchDialog.type === 'future' ? 'schedule' : matchDialog.type === 'confirm-add' ? 'sports_soccer' : 'error_outline'}
+              </span>
+            </div>
+
+            {/* 타이틀 */}
+            <h3 style={{
+              margin: '0 0 10px',
+              fontSize: 20,
+              fontWeight: 700,
+              color: '#111827',
+              letterSpacing: -0.3,
+            }}>
+              {matchDialog.type === 'future' ? '아직 경기 전이에요!' : matchDialog.type === 'confirm-add' ? '기록이 없어요' : '오류가 발생했어요'}
+            </h3>
+
+            {/* 설명 */}
+            <p style={{
+              margin: '0 0 28px',
+              fontSize: 14,
+              color: '#6b7280',
+              lineHeight: 1.7,
+              whiteSpace: 'pre-line',
+            }}>
+              {matchDialog.type === 'future'
+                ? '경기가 끝난 후에 직관 기록을\n남길 수 있어요. 경기 후에 다시\n방문해주세요!'
+                : matchDialog.type === 'confirm-add'
+                ? '이 경기의 직관 기록이 없어요.\n지금 기록을 남겨볼까요?'
+                : '기록을 불러오는 데 실패했어요.\n잠시 후 다시 시도해주세요.'}
+            </p>
+
+            {/* 버튼 */}
+            {matchDialog.type === 'future' || matchDialog.type === 'error' ? (
+              <button
+                onClick={() => setMatchDialog(null)}
+                style={{
+                  width: '100%',
+                  padding: '14px 0',
+                  fontSize: 15,
+                  fontWeight: 600,
+                  color: '#374151',
+                  backgroundColor: '#f3f4f6',
+                  border: 'none',
+                  borderRadius: 12,
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
+                확인
+              </button>
+            ) : (
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  onClick={() => setMatchDialog(null)}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#6b7280',
+                    backgroundColor: '#f3f4f6',
+                    border: 'none',
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  취소
+                </button>
+                <button
+                  onClick={() => {
+                    if (matchDialog.type === 'confirm-add') {
+                      onAddMatchHistory?.(matchDialog.matchId);
+                    }
+                    setMatchDialog(null);
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '14px 0',
+                    fontSize: 15,
+                    fontWeight: 600,
+                    color: '#fff',
+                    backgroundColor: '#004A9F',
+                    border: 'none',
+                    borderRadius: 12,
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  등록하기
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

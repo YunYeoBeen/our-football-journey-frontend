@@ -14,27 +14,36 @@ const compressionOptions = {
 interface ProfileImageModalProps {
   visible: boolean;
   currentImageUrl?: string;
+  currentNickname?: string;
   onClose: () => void;
-  onUpdated: (newImageKey: string) => void;
+  onUpdated: (imageKey?: string, nickname?: string) => void;
 }
 
 const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
   visible,
   currentImageUrl,
+  currentNickname,
   onClose,
   onUpdated,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [nickname, setNickname] = useState(currentNickname || '');
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // currentNickname 외부 변경 시 동기화
+  const [prevNickname, setPrevNickname] = useState(currentNickname);
+  if (currentNickname !== prevNickname) {
+    setPrevNickname(currentNickname);
+    setNickname(currentNickname || '');
+  }
 
   const handleFileSelect = (file: File) => {
     if (file && file.type.startsWith('image/')) {
       setSelectedFile(file);
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
+      setPreviewUrl(URL.createObjectURL(file));
     } else {
       message.error('이미지 파일만 업로드 가능합니다.');
     }
@@ -47,32 +56,40 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
     if (file) handleFileSelect(file);
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const nicknameChanged = nickname.trim() !== (currentNickname || '');
+  const canSave = !!selectedFile || nicknameChanged;
+
+  const handleSave = async () => {
+    if (!canSave) return;
 
     setIsUploading(true);
     try {
-      let fileToUpload: File | Blob = selectedFile;
-      try {
-        const compressed = await imageCompression(selectedFile, compressionOptions);
-        fileToUpload = compressed;
-      } catch {
-        console.warn('압축 실패, 원본 사용');
+      let uploadedKey: string | undefined;
+
+      if (selectedFile) {
+        let fileToUpload: File | Blob = selectedFile;
+        try {
+          fileToUpload = await imageCompression(selectedFile, compressionOptions);
+        } catch {
+          console.warn('압축 실패, 원본 사용');
+        }
+
+        const presignedUrls = await s3Api.getPresignedUploadUrls([selectedFile.name], 'PROFILE');
+        if (presignedUrls.length > 0) {
+          const { uploadUrl, key } = presignedUrls[0];
+          await s3Api.uploadToS3(uploadUrl, fileToUpload);
+          uploadedKey = key;
+        }
       }
 
-      const presignedUrls = await s3Api.getPresignedUploadUrls([selectedFile.name], 'PROFILE');
+      const nicknameToSave = nicknameChanged ? nickname.trim() : undefined;
+      await userApi.updateProfile(uploadedKey, nicknameToSave);
 
-      if (presignedUrls.length > 0) {
-        const { uploadUrl, key } = presignedUrls[0];
-        await s3Api.uploadToS3(uploadUrl, fileToUpload);
-        await userApi.updateProfileImage(key);
-
-        message.success('프로필 이미지가 변경되었습니다!');
-        onUpdated(key);
-        handleClose();
-      }
+      message.success('프로필이 변경되었습니다!');
+      onUpdated(uploadedKey, nicknameToSave);
+      handleClose();
     } catch {
-      message.error('프로필 이미지 변경에 실패했습니다.');
+      message.error('프로필 변경에 실패했습니다.');
     } finally {
       setIsUploading(false);
     }
@@ -81,6 +98,7 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
   const handleClose = () => {
     setSelectedFile(null);
     setPreviewUrl(null);
+    setNickname(currentNickname || '');
     onClose();
   };
 
@@ -95,7 +113,7 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
       <div className="profile-modal">
         {/* Header */}
         <div className="profile-modal-header">
-          <h2 className="profile-modal-title">프로필 사진 변경</h2>
+          <h2 className="profile-modal-title">프로필 설정</h2>
           <button onClick={handleClose} className="profile-modal-close-btn">
             <span className="icon" style={{ fontSize: 24 }}>close</span>
           </button>
@@ -116,7 +134,77 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
             </div>
           </div>
 
-          {/* Upload Area */}
+          {/* 닉네임 입력 */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{
+              display: 'block',
+              fontSize: 13,
+              fontWeight: 600,
+              color: '#666',
+              marginBottom: 6,
+            }}>
+              닉네임
+            </label>
+            <div style={{ position: 'relative' }}>
+              <span style={{
+                position: 'absolute',
+                left: 12,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontFamily: 'Material Symbols Outlined',
+                fontSize: 18,
+                color: '#9ca3af',
+                pointerEvents: 'none',
+              }}>
+                badge
+              </span>
+              <input
+                type="text"
+                value={nickname}
+                onChange={e => setNickname(e.target.value)}
+                placeholder="닉네임을 입력하세요"
+                maxLength={20}
+                style={{
+                  width: '100%',
+                  padding: '11px 40px 11px 38px',
+                  fontSize: 14,
+                  fontWeight: 500,
+                  border: '1.5px solid #e5e7eb',
+                  borderRadius: 10,
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                  boxSizing: 'border-box',
+                  color: '#181110',
+                  backgroundColor: '#fafafa',
+                  transition: 'border-color 0.2s',
+                }}
+                onFocus={e => (e.currentTarget.style.borderColor = '#ffb4a8')}
+                onBlur={e => (e.currentTarget.style.borderColor = '#e5e7eb')}
+              />
+              <span style={{
+                position: 'absolute',
+                right: 10,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: 11,
+                color: '#9ca3af',
+                pointerEvents: 'none',
+              }}>
+                {nickname.length}/20
+              </span>
+            </div>
+          </div>
+
+          {/* 프로필 사진 업로드 */}
+          <label style={{
+            display: 'block',
+            fontSize: 13,
+            fontWeight: 600,
+            color: '#666',
+            marginBottom: 6,
+          }}>
+            프로필 사진
+          </label>
           <div
             onClick={() => fileInputRef.current?.click()}
             onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
@@ -149,12 +237,12 @@ const ProfileImageModal: React.FC<ProfileImageModalProps> = ({
             취소
           </button>
           <button
-            onClick={handleUpload}
-            disabled={!selectedFile || isUploading}
+            onClick={handleSave}
+            disabled={!canSave || isUploading}
             className="profile-modal-submit-btn"
           >
             {isUploading && <span className="profile-modal-submit-spinner">progress_activity</span>}
-            {isUploading ? '업로드 중...' : '변경하기'}
+            {isUploading ? '저장 중...' : '저장하기'}
           </button>
         </div>
       </div>

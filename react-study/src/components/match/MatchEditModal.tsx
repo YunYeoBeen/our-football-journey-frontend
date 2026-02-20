@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import NaverMapPickerModal from '../common/NaverMapPickerModal';
 import { matchHistoryApi } from '../../services/matchHistoryApi';
-import type { PlaceCreateDto, PlaceType, MatchHistoryResponseDto } from '../../services/matchHistoryApi';
+import type { PlaceCreateDto, PlaceType, MatchHistoryResponseDto, MatchAttendanceStatus } from '../../services/matchHistoryApi';
 
 interface MatchEditModalProps {
   visible: boolean;
@@ -55,6 +55,7 @@ const MatchEditModal: React.FC<MatchEditModalProps> = ({
 }) => {
   const [homeScore, setHomeScore] = useState('');
   const [awayScore, setAwayScore] = useState('');
+  const [attendanceStatus, setAttendanceStatus] = useState<MatchAttendanceStatus>('ATTENDING');
   const [memo, setMemo] = useState('');
   const [places, setPlaces] = useState<TempPlace[]>([]);
   const [isMapPickerOpen, setIsMapPickerOpen] = useState(false);
@@ -67,6 +68,7 @@ const MatchEditModal: React.FC<MatchEditModalProps> = ({
     if (visible && history) {
       setHomeScore(history.homeScore?.toString() || '');
       setAwayScore(history.awayScore?.toString() || '');
+      setAttendanceStatus(history.attendanceStatus || 'ATTENDING');
       setMemo(history.memo || '');
 
       // 기존 장소 로드
@@ -93,6 +95,7 @@ const MatchEditModal: React.FC<MatchEditModalProps> = ({
     if (!visible) {
       setHomeScore('');
       setAwayScore('');
+      setAttendanceStatus('ATTENDING');
       setMemo('');
       setPlaces([]);
       setNextTempId(1);
@@ -183,6 +186,7 @@ const MatchEditModal: React.FC<MatchEditModalProps> = ({
         matchId: history.matchId,
         homeScore: parseInt(homeScore),
         awayScore: parseInt(awayScore),
+        attendanceStatus,
         memo: memo || undefined,
         places: placeDtos,
       });
@@ -406,6 +410,45 @@ const MatchEditModal: React.FC<MatchEditModalProps> = ({
                     }}
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* 참석 상태 */}
+            <div>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: modalStyles.colors.textMuted, marginBottom: 8 }}>
+                관람 방식
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([
+                  { value: 'ATTENDING', label: '직관', icon: 'stadium', color: '#22c55e' },
+                  { value: 'TV', label: 'TV', icon: 'tv', color: '#8b5cf6' },
+                  { value: 'NOT_ATTENDING', label: '불참', icon: 'cancel', color: '#ef4444' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setAttendanceStatus(opt.value)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '10px 4px',
+                      border: `2px solid ${attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray200}`,
+                      borderRadius: 10,
+                      backgroundColor: attendanceStatus === opt.value ? `${opt.color}15` : 'transparent',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'Material Symbols Outlined', fontSize: 22, color: attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray500 }}>
+                      {opt.icon}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: attendanceStatus === opt.value ? opt.color : modalStyles.colors.gray500 }}>
+                      {opt.label}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
 
