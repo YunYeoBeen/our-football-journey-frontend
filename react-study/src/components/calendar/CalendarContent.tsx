@@ -370,9 +370,13 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         <span className={numberClasses}>{day.date()}</span>
         <div className="calendar-day-dots">
           {hasBoard && <div className="calendar-day-dot bg-primary" />}
-          {hasMatch && matchEvent?.attendances?.map((person, i) => (
-            <div key={i} className="calendar-day-dot" style={{ backgroundColor: getStatusColor(person.status ?? undefined) }} />
-          ))}
+          {hasMatch && (
+            matchEvent?.attendances?.length
+              ? matchEvent.attendances.map((person, i) => (
+                  <div key={i} className="calendar-day-dot" style={{ backgroundColor: getStatusColor(person.status ?? undefined) }} />
+                ))
+              : <div className="calendar-day-dot" style={{ backgroundColor: colors.ulsanBlue }} />
+          )}
         </div>
       </div>
     );
@@ -492,7 +496,7 @@ const CalendarContent: React.FC<CalendarContentProps> = ({
         </div>
       ) : (
         <div className="calendar-grid-wrapper">
-          <div className={`calendar-grid-container ${!isDragging ? 'calendar-grid-container--animating' : ''}`} style={{ height: (calendarHeight ?? monthHeight) + 16 }}>
+          <div className={`calendar-grid-container ${!isDragging ? 'calendar-grid-container--animating' : ''}`} style={{ height: (calendarHeight ?? monthHeight) + 32 }}>
             {viewMode === 'month' ? (
               <div ref={gridRef} {...horizontalSwipe} className="calendar-grid calendar-grid--month">
                 {calendarWeeks.flat().map((day, index) => renderDayCell(day, index))}
